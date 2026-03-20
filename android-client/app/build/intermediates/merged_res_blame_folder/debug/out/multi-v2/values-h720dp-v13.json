@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "edu.hitsz.aircraftwar.android.app-mergeDebugResources-29:/values-h720dp-v13/values-h720dp-v13.xml",
+            "map": [
+                {
+                    "source": "/Users/jialintu/.gradle/caches/8.14/transforms/e7b1bd3157d135f9b565f7cf96a97364/transformed/appcompat-1.7.0/res/values-h720dp-v13/values-h720dp-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "66",
+                        "endOffsets": "117"
+                    }
+                }
+            ]
+        }
+    ]
+}
