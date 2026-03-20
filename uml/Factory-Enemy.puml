@@ -1,0 +1,83 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+' Client on top for pattern demo style
+class Game
+
+interface EnemyFactory {
+    + createEnemy(context: ManagerContext) : AbstractEnemy
+}
+
+class MobEnemyFactory implements EnemyFactory {
+    -speedY : int
+    -hp : int
+}
+class EliteEnemyFactory implements EnemyFactory {
+    -speedY : int
+    -hp : int
+}
+class SuperEliteEnemyFactory implements EnemyFactory {
+    -speedY : int
+    -hp : int
+}
+class BossEnemyFactory implements EnemyFactory {
+    -hp : int
+    -speedX : int
+    +setHp(hp:int) : void
+}
+
+class EnemyFactoryManager {
+    -mobFactory : EnemyFactory
+    -eliteFactory : EnemyFactory
+    -superEliteFactory : EnemyFactory
+    -eliteProbability : double
+    -superEliteProbability : double
+    +setProbabilities(elite:double, superElite:double) : void
+    +createEnemy(context:ManagerContext) : AbstractEnemy
+}
+
+abstract class AbstractEnemy
+class MobEnemy
+class EliteEnemy
+class SuperEliteEnemy
+class BossEnemy
+
+class ManagerContext {
+    + timeMs : int
+    + enemyCount : int
+    + enemyMaxNumber : int
+    + screenWidth : int
+    + screenHeight : int
+}
+
+' Implements (keep uncluttered)
+EnemyFactory <|.. MobEnemyFactory
+EnemyFactory <|.. EliteEnemyFactory
+EnemyFactory <|.. SuperEliteEnemyFactory
+EnemyFactory <|.. BossEnemyFactory
+
+' Product hierarchy
+AbstractEnemy <|-- MobEnemy
+AbstractEnemy <|-- EliteEnemy
+AbstractEnemy <|-- SuperEliteEnemy
+AbstractEnemy <|-- BossEnemy
+
+EnemyFactoryManager --> EnemyFactory : «compose»
+
+' Client uses factory and product abstractions
+Game ..> EnemyFactoryManager : «use»
+Game ..> AbstractEnemy : «product»
+Game ..> BossEnemyFactory : «spawn boss»
+
+' Factories create concrete products
+MobEnemyFactory ..> MobEnemy : «create»
+EliteEnemyFactory ..> EliteEnemy : «create»
+SuperEliteEnemyFactory ..> SuperEliteEnemy : «create»
+BossEnemyFactory ..> BossEnemy : «create»
+
+EnemyFactoryManager ..> AbstractEnemy : «create»
+
+@enduml

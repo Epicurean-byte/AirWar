@@ -1,0 +1,43 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+interface ScoreDao {
+    +loadRecords() : List<ScoreRecord>
+    +saveRecords(records: List<ScoreRecord>) : void
+}
+
+class FileScoreDao {
+    -filePath : Path
+    +FileScoreDao(path: String)
+    +loadRecords() : List<ScoreRecord>
+    +saveRecords(records: List<ScoreRecord>) : void
+}
+
+class ScoreBoard {
+    -scoreDao : ScoreDao
+    -maxRecords : int
+    +ScoreBoard(scoreDao: ScoreDao, max: int)
+    +recordScore(name: String, score: int) : void
+    +printLeaderboard() : void
+}
+
+class ScoreRecord {
+    -playerName : String
+    -score : int
+    -timestamp : LocalDateTime
+}
+
+class Game {
+    -scoreBoard : ScoreBoard
+}
+
+ScoreDao <|.. FileScoreDao
+ScoreBoard --> ScoreDao
+ScoreBoard ..> ScoreRecord : «manage»
+FileScoreDao ..> ScoreRecord : «read/write»
+Game ..> ScoreBoard : «use»
+
+@enduml

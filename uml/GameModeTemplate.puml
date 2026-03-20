@@ -1,0 +1,38 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+abstract class AbstractGameMode {
+    +apply(game: Game)
+    +update(game: Game, timeMs: int, score: int)
+    +onBossSpawn(game: Game, boss: BossEnemy, spawnIndex: int)
+    #initialEnemyMaxNumber() : int
+    #initialCycleDuration() : int
+    #initialEliteProbability() : double
+    #initialSuperEliteProbability() : double
+    #initialBossScoreThreshold() : int
+    #isBossEnabled() : boolean
+    #buildEnemyFactoryManager() : EnemyFactoryManager
+    #buildBossFactory() : BossEnemyFactory
+    #adjustDifficulty(game, timeMs, score)
+    #adjustBossOnSpawn(game, boss, index)
+}
+
+class EasyGameMode
+class NormalGameMode
+class HardGameMode
+
+class Game
+
+AbstractGameMode <|-- EasyGameMode
+AbstractGameMode <|-- NormalGameMode
+AbstractGameMode <|-- HardGameMode
+
+Game --> AbstractGameMode : «delegate configuration»
+EasyGameMode ..> EnemyFactoryManager
+NormalGameMode ..> EnemyFactoryManager
+HardGameMode ..> EnemyFactoryManager
+
+@enduml

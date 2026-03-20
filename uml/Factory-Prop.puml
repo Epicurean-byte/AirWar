@@ -1,0 +1,63 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+' Client-like component on top
+class Game
+
+interface PropFactory {
+    + createProp(x: int, y: int) : AbstractProp
+}
+
+class BloodSupplyFactory implements PropFactory
+class BombFactory implements PropFactory
+class FireSupplyFactory implements PropFactory
+class SuperFireFactory implements PropFactory
+
+class PropDropSelector {
+    -bloodFactory : PropFactory
+    -bombFactory : PropFactory
+    -fireFactory : PropFactory
+    -superFireFactory : PropFactory
+    -dropRate : double
+    -bloodRatio : double
+    -bombRatio : double
+    -fireRatio : double
+    -superFireRatio : double
+    +createFor(deadEnemy: AbstractAircraft) : AbstractProp
+}
+
+abstract class AbstractProp
+class BloodSupply
+class BombSupply
+class FireSupply
+class SuperFireSupply
+
+' Implements
+PropFactory <|.. BloodSupplyFactory
+PropFactory <|.. BombFactory
+PropFactory <|.. FireSupplyFactory
+PropFactory <|.. SuperFireFactory
+
+' Product hierarchy
+AbstractProp <|-- BloodSupply
+AbstractProp <|-- BombSupply
+AbstractProp <|-- FireSupply
+AbstractProp <|-- SuperFireSupply
+
+' Client uses factory and product abstractions
+Game ..> PropDropSelector : «use»
+Game ..> AbstractProp : «product»
+
+PropDropSelector ..> PropFactory : «compose»
+PropDropSelector ..> AbstractProp : «create»
+
+' Factories create concrete products
+BloodSupplyFactory ..> BloodSupply : «create»
+BombFactory ..> BombSupply : «create»
+FireSupplyFactory ..> FireSupply : «create»
+SuperFireFactory ..> SuperFireSupply : «create»
+
+@enduml

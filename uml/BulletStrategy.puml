@@ -1,0 +1,78 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+interface BulletFactory {
+    +createBullets(x:int, y:int, speedX:int, speedY:int, power:int) : List<BaseBullet>
+}
+
+class AbstractPatternBulletFactory {
+    #shootNum : int
+    #direction : int
+    #creator : BulletCreator
+    +AbstractPatternBulletFactory(shootNum:int, direction:int, creator:BulletCreator)
+}
+
+class StraightBulletFactory
+class ScatterBulletFactory
+class RingBulletFactory
+
+interface BulletCreator {
+    +create(x:int, y:int, speedX:int, speedY:int, power:int) : BaseBullet
+}
+
+class HeroAircraft {
+    -bulletFactory : BulletFactory
+    +setFireMode(mode: FireMode) : void
+    +applyTimedFireMode(mode: FireMode, durationMs: long) : void
+    +cycleFireMode() : void
+    +shoot() : List<BaseBullet>
+}
+
+class SuperEliteEnemy
+class BossEnemy
+
+class Game
+
+class FireSupply {
+    +activate(game: Game) : int
+}
+
+class SuperFireSupply {
+    +activate(game: Game) : int
+}
+
+abstract class BaseBullet
+class HeroBullet
+class EnemyBullet
+
+BulletFactory <|.. AbstractPatternBulletFactory
+AbstractPatternBulletFactory <|-- StraightBulletFactory
+AbstractPatternBulletFactory <|-- ScatterBulletFactory
+AbstractPatternBulletFactory <|-- RingBulletFactory
+
+HeroBullet ..|> BaseBullet
+EnemyBullet ..|> BaseBullet
+
+BulletFactory ..> BaseBullet : «create»
+BulletCreator ..> BaseBullet : «create»
+HeroAircraft ..> BulletFactory : «use»
+SuperEliteEnemy ..> BulletFactory : «use»
+BossEnemy ..> BulletFactory : «use»
+
+StraightBulletFactory ..> BulletCreator : «delegate»
+ScatterBulletFactory ..> BulletCreator : «delegate»
+RingBulletFactory ..> BulletCreator : «delegate»
+
+Game ..> FireSupply : «spawn / activate»
+Game ..> SuperFireSupply : «spawn / activate»
+FireSupply ..> HeroAircraft : «set scatter (3s)»
+SuperFireSupply ..> HeroAircraft : «set ring (3s)»
+
+HeroAircraft ..> HeroBullet : «shoots»
+SuperEliteEnemy ..> EnemyBullet : «shoots»
+BossEnemy ..> EnemyBullet : «shoots»
+
+@enduml

@@ -1,0 +1,42 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+class Game
+class BombSupply
+
+interface BombObserver {
+    +onBombActivated() : int
+    +isActive() : boolean
+}
+
+class BombEventPublisher {
+    +register(o: BombObserver)
+    +unregister(o: BombObserver)
+    +notifyObservers() : int
+}
+
+class AbstractEnemy
+class MobEnemy
+class EliteEnemy
+class SuperEliteEnemy
+class BossEnemy
+class EnemyBullet
+
+BombObserver <|.. AbstractEnemy
+BombObserver <|.. EnemyBullet
+AbstractEnemy <|-- MobEnemy
+AbstractEnemy <|-- EliteEnemy
+AbstractEnemy <|-- SuperEliteEnemy
+AbstractEnemy <|-- BossEnemy
+
+BombEventPublisher --> BombObserver : «notify»
+Game --> BombEventPublisher : «manage»
+Game --> BombSupply : «spawn / pickup»
+BombSupply ..> BombEventPublisher : «notifyObservers()»
+BombSupply ..> Game : «activate(game)»
+Game --> BombObserver : «register / unregister»
+
+@enduml
