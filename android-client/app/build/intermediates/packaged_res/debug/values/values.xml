@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_accent">#F4B942</color>
+    <color name="color_on_surface">#1E1E1E</color>
+    <color name="color_primary">#133C55</color>
+    <color name="color_primary_dark">#0B2534</color>
+    <color name="color_surface">#F3EFE2</color>
+    <string name="app_name">Aircraft War Android</string>
+    <style name="Theme.AircraftWarAndroid" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorPrimaryVariant">@color/color_primary_dark</item>
+        <item name="colorSecondary">@color/color_accent</item>
+        <item name="android:statusBarColor">@color/color_primary_dark</item>
+        <item name="android:windowBackground">@color/color_surface</item>
+        <item name="android:textColor">@color/color_on_surface</item>
+    </style>
+</resources>

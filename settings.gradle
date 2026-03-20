@@ -1,0 +1,25 @@
+import org.gradle.api.initialization.resolve.RepositoriesMode
+
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "AircraftWarNetwork"
+
+include(":game-core")
+include(":android-client:app")
+
+project(":game-core").projectDir = file("game-core")
+project(":android-client:app").projectDir = file("android-client/app")

@@ -1,0 +1,18 @@
+package edu.hitsz.game.core.config;
+
+public enum SpriteId {
+    BACKGROUND_EASY,
+    BACKGROUND_NORMAL,
+    BACKGROUND_HARD,
+    HERO,
+    HERO_BULLET,
+    ENEMY_BULLET,
+    MOB_ENEMY,
+    ELITE_ENEMY,
+    SUPER_ELITE_ENEMY,
+    BOSS_ENEMY,
+    BLOOD_SUPPLY,
+    BOMB_SUPPLY,
+    FIRE_SUPPLY,
+    SUPER_FIRE_SUPPLY
+}
