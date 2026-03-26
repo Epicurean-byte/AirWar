@@ -27,7 +27,9 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
     private GameEngine gameEngine;
     private GameLoopThread gameLoopThread;
     private boolean surfaceReady = false;
-    private GameViewport viewport = GameViewport.fit(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
+    private int warmedSurfaceWidth = -1;
+    private int warmedSurfaceHeight = -1;
+    private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
 
     public AircraftWarSurfaceView(Context context, Difficulty difficulty) {
         this(context, null, difficulty);
@@ -72,20 +74,26 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
     }
 
     @Override
-    public void onFrame(long nowMs) {
+    public void onFrame(long nowMs, int updateCount) {
         if (gameEngine == null || !surfaceReady) {
             return;
         }
-        gameEngine.update(nowMs);
+        for (int i = 0; i < updateCount; i++) {
+            gameEngine.update(nowMs);
+        }
         for (GameEvent event : gameEngine.drainEvents()) {
             audioPlayer.playEvent(event);
         }
         GameSnapshot snapshot = gameEngine.snapshot();
-        viewport = GameViewport.fit(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
+        viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
 
         Canvas canvas = null;
         try {
-            canvas = getHolder().lockCanvas();
+            try {
+                canvas = getHolder().lockHardwareCanvas();
+            } catch (IllegalStateException ignored) {
+                canvas = getHolder().lockCanvas();
+            }
             if (canvas != null) {
                 renderer.render(canvas, snapshot, viewport);
             }
@@ -141,12 +149,27 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
     }
 
     private void updateViewport() {
-        viewport = GameViewport.fit(
+        viewport = GameViewport.fill(
                 getWidth(),
                 getHeight(),
                 BitmapSkinManager.DESKTOP_WORLD_WIDTH,
                 BitmapSkinManager.DESKTOP_WORLD_HEIGHT
         );
+        warmUpResourcesIfNeeded();
+    }
+
+    private void warmUpResourcesIfNeeded() {
+        int width = getWidth();
+        int height = getHeight();
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        if (width == warmedSurfaceWidth && height == warmedSurfaceHeight) {
+            return;
+        }
+        skinManager.warmUp(viewport, difficulty);
+        warmedSurfaceWidth = width;
+        warmedSurfaceHeight = height;
     }
 
     private void startLoop() {

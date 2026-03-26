@@ -11,6 +11,7 @@ import edu.hitsz.game.core.engine.RenderSprite;
 
 public final class AndroidGameRenderer {
     private final BitmapSkinManager skinManager;
+    private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint hudPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint overlayTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -26,51 +27,49 @@ public final class AndroidGameRenderer {
     public void render(Canvas canvas, GameSnapshot snapshot, GameViewport viewport) {
         drawBackground(canvas, snapshot);
         for (RenderSprite sprite : snapshot.getRenderSprites()) {
-            Bitmap bitmap = skinManager.getBitmap(sprite.getSpriteId(), sprite.getWidth(), sprite.getHeight());
+            int targetWidth = Math.max(1, Math.round(viewport.spriteWidthToScreen(sprite.getWidth())));
+            int targetHeight = Math.max(1, Math.round(viewport.spriteHeightToScreen(sprite.getHeight())));
+            Bitmap bitmap = skinManager.getBitmap(sprite.getSpriteId(), targetWidth, targetHeight);
             RectF destination = viewport.worldRectToScreen(
                     sprite.getX(),
                     sprite.getY(),
                     sprite.getWidth(),
                     sprite.getHeight()
             );
-            canvas.drawBitmap(bitmap, null, destination, null);
+            canvas.drawBitmap(bitmap, null, destination, bitmapPaint);
         }
         drawHud(canvas, snapshot, viewport);
         if (snapshot.isGameOver()) {
-            drawGameOver(canvas, snapshot, viewport);
+            drawGameOver(canvas, viewport);
         }
     }
 
     private void drawBackground(Canvas canvas, GameSnapshot snapshot) {
+        int canvasWidth = canvas.getWidth();
+        int canvasHeight = canvas.getHeight();
         Bitmap background = skinManager.getBackground(
                 snapshot.getDifficulty(),
-                snapshot.getWorldWidth(),
-                snapshot.getWorldHeight()
+                canvasWidth,
+                canvasHeight
         );
-        float scale = Math.max(
-                canvas.getWidth() / (float) snapshot.getWorldWidth(),
-                canvas.getHeight() / (float) snapshot.getWorldHeight()
-        );
-        float scaledWidth = snapshot.getWorldWidth() * scale;
-        float scaledHeight = snapshot.getWorldHeight() * scale;
-        float offsetX = (canvas.getWidth() - scaledWidth) / 2.0f;
-        float offsetY = (canvas.getHeight() - scaledHeight) / 2.0f;
-        float topA = offsetY + (snapshot.getBackgroundOffset() - snapshot.getWorldHeight()) * scale;
-        float topB = offsetY + snapshot.getBackgroundOffset() * scale;
+        float scrollOffset = snapshot.getBackgroundOffset()
+                * (canvasHeight / (float) snapshot.getWorldHeight());
+        float topA = scrollOffset - canvasHeight;
+        float topB = scrollOffset;
         RectF destinationA = new RectF(
-                offsetX,
+                0.0f,
                 topA,
-                offsetX + scaledWidth,
-                topA + scaledHeight
+                canvasWidth,
+                topA + canvasHeight
         );
         RectF destinationB = new RectF(
-                offsetX,
+                0.0f,
                 topB,
-                offsetX + scaledWidth,
-                topB + scaledHeight
+                canvasWidth,
+                topB + canvasHeight
         );
-        canvas.drawBitmap(background, null, destinationA, null);
-        canvas.drawBitmap(background, null, destinationB, null);
+        canvas.drawBitmap(background, null, destinationA, bitmapPaint);
+        canvas.drawBitmap(background, null, destinationB, bitmapPaint);
     }
 
     private void drawHud(Canvas canvas, GameSnapshot snapshot, GameViewport viewport) {
@@ -89,21 +88,21 @@ public final class AndroidGameRenderer {
         );
     }
 
-    private void drawGameOver(Canvas canvas, GameSnapshot snapshot, GameViewport viewport) {
+    private void drawGameOver(Canvas canvas, GameViewport viewport) {
         canvas.drawRect(
                 new RectF(
-                        viewport.getOffsetX(),
-                        viewport.getOffsetY(),
-                        viewport.getOffsetX() + viewport.getScaledWidth(),
-                        viewport.getOffsetY() + viewport.getScaledHeight()
+                        0.0f,
+                        0.0f,
+                        canvas.getWidth(),
+                        canvas.getHeight()
                 ),
                 overlayPaint
         );
         overlayTextPaint.setTextSize(Math.max(40.0f, 56.0f * viewport.scale()));
         canvas.drawText(
                 "GAME OVER",
-                viewport.worldToScreenX(snapshot.getWorldWidth() / 2.0f),
-                viewport.worldToScreenY(snapshot.getWorldHeight() / 2.0f),
+                canvas.getWidth() / 2.0f,
+                canvas.getHeight() / 2.0f,
                 overlayTextPaint
         );
     }

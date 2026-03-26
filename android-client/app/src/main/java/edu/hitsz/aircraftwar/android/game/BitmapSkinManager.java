@@ -76,6 +76,30 @@ public final class BitmapSkinManager {
         return bitmap;
     }
 
+    public void warmUp(GameViewport viewport, Difficulty difficulty) {
+        getBackground(
+                difficulty,
+                Math.max(1, Math.round(viewport.getScaledWidth())),
+                Math.max(1, Math.round(viewport.getScaledHeight()))
+        );
+        EnumMap<SpriteId, SpriteAsset> spriteMap = skinRegistry.get(activeSkin);
+        if (spriteMap == null) {
+            return;
+        }
+        for (SpriteId spriteId : SpriteId.values()) {
+            if (isBackground(spriteId)) {
+                continue;
+            }
+            SpriteAsset asset = spriteMap.get(spriteId);
+            if (asset == null) {
+                continue;
+            }
+            int targetWidth = Math.max(1, Math.round(viewport.spriteWidthToScreen(asset.sourceWidth)));
+            int targetHeight = Math.max(1, Math.round(viewport.spriteHeightToScreen(asset.sourceHeight)));
+            getBitmap(spriteId, targetWidth, targetHeight);
+        }
+    }
+
     private Bitmap createBitmap(SpriteAsset asset, int width, int height) {
         if (asset == null) {
             return Bitmap.createBitmap(Math.max(1, width), Math.max(1, height), Bitmap.Config.ARGB_8888);

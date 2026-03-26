@@ -11,6 +11,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import edu.hitsz.aircraftwar.android.MainActivity;
@@ -56,21 +59,45 @@ public class GameFragment extends Fragment {
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         backParams.gravity = Gravity.TOP | Gravity.START;
-        int margin = UiUtils.dp(requireContext(), 16);
-        backParams.setMargins(margin, margin, margin, margin);
+        int baseMargin = UiUtils.dp(requireContext(), 16);
+        backParams.setMargins(baseMargin, baseMargin, baseMargin, baseMargin);
         root.addView(backButton, backParams);
 
         TextView badge = UiUtils.createBody(requireContext(), playerName + " / " + difficulty.name());
         badge.setBackgroundColor(0x66333333);
         badge.setTextColor(0xFFFFFFFF);
-        badge.setPadding(margin, UiUtils.dp(requireContext(), 8), margin, UiUtils.dp(requireContext(), 8));
+        badge.setPadding(baseMargin, UiUtils.dp(requireContext(), 8), baseMargin, UiUtils.dp(requireContext(), 8));
         FrameLayout.LayoutParams badgeParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         badgeParams.gravity = Gravity.TOP | Gravity.END;
-        badgeParams.setMargins(margin, margin, margin, margin);
+        badgeParams.setMargins(baseMargin, baseMargin, baseMargin, baseMargin);
         root.addView(badge, badgeParams);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars());
+
+            FrameLayout.LayoutParams updatedBackParams = (FrameLayout.LayoutParams) backButton.getLayoutParams();
+            updatedBackParams.setMargins(
+                    baseMargin + systemBars.left,
+                    baseMargin + systemBars.top,
+                    baseMargin,
+                    baseMargin
+            );
+            backButton.setLayoutParams(updatedBackParams);
+
+            FrameLayout.LayoutParams updatedBadgeParams = (FrameLayout.LayoutParams) badge.getLayoutParams();
+            updatedBadgeParams.setMargins(
+                    baseMargin,
+                    baseMargin + systemBars.top,
+                    baseMargin + systemBars.right,
+                    baseMargin
+            );
+            badge.setLayoutParams(updatedBadgeParams);
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(root);
 
         return root;
     }

@@ -9,6 +9,10 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import edu.hitsz.aircraftwar.android.R;
 
 public final class UiUtils {
@@ -32,8 +36,21 @@ public final class UiUtils {
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
         layout.setBackgroundResource(R.drawable.pc_bg_easy);
-        int padding = dp(context, 24);
-        layout.setPadding(padding, padding, padding, padding);
+        layout.setClipToPadding(false);
+        int horizontalPadding = dp(context, 24);
+        int verticalPadding = dp(context, 24);
+        layout.setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding);
+        ViewCompat.setOnApplyWindowInsetsListener(layout, (view, insets) -> {
+            Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(
+                    horizontalPadding + systemBars.left,
+                    verticalPadding + systemBars.top,
+                    horizontalPadding + systemBars.right,
+                    verticalPadding + systemBars.bottom
+            );
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(layout);
         return layout;
     }
 

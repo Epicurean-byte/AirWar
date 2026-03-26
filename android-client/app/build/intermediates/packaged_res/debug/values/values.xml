@@ -10,7 +10,8 @@
         <item name="colorPrimary">@color/color_primary</item>
         <item name="colorPrimaryVariant">@color/color_primary_dark</item>
         <item name="colorSecondary">@color/color_accent</item>
-        <item name="android:statusBarColor">@color/color_primary_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@color/color_surface</item>
         <item name="android:textColor">@color/color_on_surface</item>
     </style>

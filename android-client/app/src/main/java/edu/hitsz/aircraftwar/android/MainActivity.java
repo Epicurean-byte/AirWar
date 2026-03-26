@@ -1,8 +1,12 @@
 package edu.hitsz.aircraftwar.android;
 
 import android.os.Bundle;
+import android.view.Window;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
 import edu.hitsz.aircraftwar.android.ui.FeatureFragment;
@@ -18,9 +22,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        configureWindow();
         if (savedInstanceState == null) {
             showLogin();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        hideSystemBars();
     }
 
     public void onLoginSubmitted(String playerName) {
@@ -71,5 +82,25 @@ public class MainActivity extends AppCompatActivity {
             transaction.addToBackStack(fragment.getClass().getSimpleName());
         }
         transaction.commit();
+        getWindow().getDecorView().post(this::hideSystemBars);
+    }
+
+    private void configureWindow() {
+        Window window = getWindow();
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        hideSystemBars();
+    }
+
+    private void hideSystemBars() {
+        WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        if (controller != null) {
+            controller.hide(WindowInsetsCompat.Type.systemBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
+        }
     }
 }
