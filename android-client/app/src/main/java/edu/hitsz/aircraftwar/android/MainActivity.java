@@ -2,29 +2,64 @@ package edu.hitsz.aircraftwar.android;
 
 import android.os.Bundle;
 import android.view.Window;
+import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
-import edu.hitsz.aircraftwar.android.ui.FeatureFragment;
+import edu.hitsz.aircraftwar.android.network.HttpApiClient;
+import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
+import edu.hitsz.aircraftwar.android.network.SessionManager;
+import edu.hitsz.aircraftwar.android.network.WsGameClient;
+import edu.hitsz.aircraftwar.android.network.model.UserProfile;
+import edu.hitsz.aircraftwar.android.ui.FriendsFragment;
 import edu.hitsz.aircraftwar.android.ui.GameFragment;
+import edu.hitsz.aircraftwar.android.ui.LeaderboardFragment;
 import edu.hitsz.aircraftwar.android.ui.LoginFragment;
 import edu.hitsz.aircraftwar.android.ui.MainMenuFragment;
+import edu.hitsz.aircraftwar.android.ui.PvpGameFragment;
+import edu.hitsz.aircraftwar.android.ui.RoomsFragment;
+import edu.hitsz.aircraftwar.android.ui.ShopFragment;
 import edu.hitsz.game.core.mode.Difficulty;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
-    private String currentPlayerName = "Player";
+    public interface GameWsListener {
+        void onOpen();
+
+        void onMessage(String type, long roomId, long userId, @Nullable JSONObject payload);
+
+        void onError(String message);
+
+        void onClosed();
+    }
+
+    private final HttpApiClient apiClient = new HttpApiClient();
+
+    private SessionManager sessionManager;
+    private UserProfile currentUser;
+    private WsGameClient wsGameClient;
+    private GameWsListener wsListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        configureWindow();
+        // configureWindow();
+
+        sessionManager = new SessionManager(this);
+        currentUser = sessionManager.loadUserOrNull();
+
         if (savedInstanceState == null) {
-            showLogin();
+            if (currentUser == null) {
+                showLogin();
+            } else {
+                showMainMenu();
+            }
         }
     }
 
@@ -38,7 +73,38 @@ public class MainActivity extends AppCompatActivity {
         if (playerName != null && !playerName.trim().isEmpty()) {
             currentPlayerName = playerName.trim();
         }
+    }
+    public HttpApiClient getApiClient() {
+        return apiClient;
+    }
+
+    public UserProfile getCurrentUser() {
+        return currentUser;
+    }
+
+    public void onUserAuthenticated(UserProfile user) {
+        currentUser = user;
+        sessionManager.saveUser(user);
         showMainMenu();
+    }
+
+    public void logoutAndBackToLogin() {
+        disconnectGameWs();
+        UserProfile localUser = currentUser;
+        currentUser = null;
+        sessionManager.clear();
+        showLogin();
+
+        if (localUser == null) {
+            return;
+        }
+        NetworkExecutor.run(() -> {
+            try {
+                apiClient.logout(localUser.getUserId());
+            } catch (Exception ignored) {
+                // Local logout remains valid even if server call fails.
+            }
+        });
     }
 
     public void showLogin() {
@@ -46,32 +112,105 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showMainMenu() {
-        replaceFragment(MainMenuFragment.newInstance(currentPlayerName), false);
+        String playerName = currentUser == null ? "Player" : currentUser.getNickname();
+        replaceFragment(MainMenuFragment.newInstance(playerName), false);
     }
 
     public void showFriends() {
-        replaceFragment(FeatureFragment.newInstance(
-                "好友",
-                "这里将接入好友列表、好友申请和在线状态。服务端准备好后可直接改为请求内存态接口。"
-        ), true);
+        replaceFragment(new FriendsFragment(), true);
     }
 
     public void showShop() {
-        replaceFragment(FeatureFragment.newInstance(
-                "商城",
-                "这里预留皮肤、音效包和道具购买入口。BitmapSkinManager 已经留出了换皮接口。"
-        ), true);
+        replaceFragment(new ShopFragment(), true);
     }
 
     public void showRooms() {
-        replaceFragment(FeatureFragment.newInstance(
-                "对战房间",
-                "这里预留房间大厅、匹配和邀请逻辑。后续接 Spring Boot 内存房间服务即可。"
-        ), true);
+        replaceFragment(new RoomsFragment(), true);
+    }
+
+    public void showLeaderboard() {
+        replaceFragment(new LeaderboardFragment(), true);
     }
 
     public void showGame(Difficulty difficulty) {
-        replaceFragment(GameFragment.newInstance(difficulty, currentPlayerName), true);
+        String playerName = currentUser == null ? "Player" : currentUser.getNickname();
+        long userId = currentUser == null ? 0L : currentUser.getUserId();
+        replaceFragment(GameFragment.newInstance(difficulty, playerName, userId), true);
+    }
+
+    public void showPvpGame(long roomId, long seed) {
+        replaceFragment(PvpGameFragment.newInstance(roomId, seed), true);
+    }
+
+    public void setWsListener(@Nullable GameWsListener listener) {
+        this.wsListener = listener;
+    }
+
+    public boolean isGameWsConnected() {
+        return wsGameClient != null;
+    }
+
+    public void connectGameWs() {
+        if (currentUser == null) {
+            toast("请先登录");
+            return;
+        }
+        disconnectGameWs();
+        wsGameClient = new WsGameClient();
+        wsGameClient.connect(currentUser.getUserId(), new WsGameClient.Listener() {
+            @Override
+            public void onOpen() {
+                if (wsListener != null) {
+                    runOnUiThread(() -> wsListener.onOpen());
+                }
+            }
+
+            @Override
+            public void onMessage(String type, long roomId, long userId, @Nullable JSONObject payload) {
+                if (wsListener != null) {
+                    runOnUiThread(() -> wsListener.onMessage(type, roomId, userId, payload));
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                if (wsListener != null) {
+                    runOnUiThread(() -> wsListener.onError(message));
+                }
+            }
+
+            @Override
+            public void onClosed() {
+                if (wsListener != null) {
+                    runOnUiThread(() -> wsListener.onClosed());
+                }
+            }
+        });
+    }
+
+    public void disconnectGameWs() {
+        if (wsGameClient != null) {
+            wsGameClient.close();
+            wsGameClient = null;
+        }
+    }
+
+    public boolean sendWs(String type, long roomId, @Nullable JSONObject payload) {
+        if (wsGameClient == null) {
+            return false;
+        }
+        wsGameClient.send(type, roomId, payload);
+        return true;
+    }
+
+    public void toast(String text) {
+        runOnUiThread(() -> Toast.makeText(this, text, Toast.LENGTH_SHORT).show());
+    }
+
+    @Override
+    protected void onDestroy() {
+        disconnectGameWs();
+        super.onDestroy();
     }
 
     private void replaceFragment(Fragment fragment, boolean addToBackStack) {

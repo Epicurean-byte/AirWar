@@ -19,6 +19,14 @@ import edu.hitsz.game.core.mode.Difficulty;
 public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder.Callback, GameLoopThread.FrameCallback {
     private static final int FRAME_INTERVAL_MS = 16;
 
+    public interface GameOverListener {
+        void onGameOver(int score);
+    }
+
+    public interface HeroMoveListener {
+        void onHeroMove(float worldX, float worldY);
+    }
+
     private final Difficulty difficulty;
     private final BitmapSkinManager skinManager;
     private final AndroidGameRenderer renderer;
@@ -29,7 +37,12 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
     private boolean surfaceReady = false;
     private int warmedSurfaceWidth = -1;
     private int warmedSurfaceHeight = -1;
-    private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
+    //private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
+    private boolean gameOverNotified = false;
+    private GameOverListener gameOverListener;
+    private HeroMoveListener heroMoveListener;
+    private volatile GameSnapshot latestSnapshot;
+    private GameViewport viewport = GameViewport.fit(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
 
     public AircraftWarSurfaceView(Context context, Difficulty difficulty) {
         this(context, null, difficulty);
@@ -85,7 +98,15 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
             audioPlayer.playEvent(event);
         }
         GameSnapshot snapshot = gameEngine.snapshot();
-        viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
+        // viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
+        latestSnapshot = snapshot;
+        if (snapshot.isGameOver() && !gameOverNotified) {
+            gameOverNotified = true;
+            if (gameOverListener != null) {
+                gameOverListener.onGameOver(snapshot.getScore());
+            }
+        }
+        viewport = GameViewport.fit(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
 
         Canvas canvas = null;
         try {
@@ -111,10 +132,15 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
         }
         int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+            float worldX = viewport.screenToWorldX(event.getX());
+            float worldY = viewport.screenToWorldY(event.getY());
             gameEngine.moveHeroTo(
-                    viewport.screenToWorldX(event.getX()),
-                    viewport.screenToWorldY(event.getY())
+                    worldX,
+                    worldY
             );
+            if (heroMoveListener != null) {
+                heroMoveListener.onHeroMove(worldX, worldY);
+            }
             return true;
         }
         return super.onTouchEvent(event);
@@ -138,9 +164,23 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
         audioPlayer.release();
     }
 
+    public void setGameOverListener(GameOverListener listener) {
+        this.gameOverListener = listener;
+    }
+
+    public void setHeroMoveListener(HeroMoveListener listener) {
+        this.heroMoveListener = listener;
+    }
+
+    @Nullable
+    public GameSnapshot getLatestSnapshot() {
+        return latestSnapshot;
+    }
+
     private void ensureEngine() {
         if (gameEngine == null) {
             gameEngine = new GameEngine(difficulty, skinManager.createDesktopSessionConfig(), FRAME_INTERVAL_MS);
+            gameOverNotified = false;
         }
     }
 

@@ -16,20 +16,26 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import edu.hitsz.aircraftwar.android.MainActivity;
 import edu.hitsz.aircraftwar.android.game.AircraftWarSurfaceView;
+import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
 import edu.hitsz.game.core.mode.Difficulty;
 
 public class GameFragment extends Fragment {
     private static final String ARG_DIFFICULTY = "difficulty";
     private static final String ARG_PLAYER = "player";
+    private static final String ARG_USER_ID = "user_id";
 
     private AircraftWarSurfaceView surfaceView;
+    private final AtomicBoolean settled = new AtomicBoolean(false);
 
-    public static GameFragment newInstance(Difficulty difficulty, String playerName) {
+    public static GameFragment newInstance(Difficulty difficulty, String playerName, long userId) {
         Bundle args = new Bundle();
         args.putString(ARG_DIFFICULTY, difficulty.name());
         args.putString(ARG_PLAYER, playerName);
+        args.putLong(ARG_USER_ID, userId);
         GameFragment fragment = new GameFragment();
         fragment.setArguments(args);
         return fragment;
@@ -43,9 +49,11 @@ public class GameFragment extends Fragment {
         Bundle args = getArguments() == null ? Bundle.EMPTY : getArguments();
         Difficulty difficulty = Difficulty.valueOf(args.getString(ARG_DIFFICULTY, Difficulty.NORMAL.name()));
         String playerName = args.getString(ARG_PLAYER, "Player");
+        long userId = args.getLong(ARG_USER_ID, 0L);
 
         FrameLayout root = new FrameLayout(requireContext());
         surfaceView = new AircraftWarSurfaceView(requireContext(), difficulty);
+        surfaceView.setGameOverListener(score -> submitSettle(userId, score));
         root.addView(surfaceView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -100,6 +108,21 @@ public class GameFragment extends Fragment {
         ViewCompat.requestApplyInsets(root);
 
         return root;
+    }
+
+    private void submitSettle(long userId, long score) {
+        if (userId <= 0 || !settled.compareAndSet(false, true)) {
+            return;
+        }
+        MainActivity activity = (MainActivity) requireActivity();
+        NetworkExecutor.run(() -> {
+            try {
+                activity.getApiClient().settleSingle(userId, score, 0L);
+                activity.toast("结算已上报: score=" + score);
+            } catch (Exception e) {
+                activity.toast("结算上报失败: " + (e.getMessage() == null ? "unknown" : e.getMessage()));
+            }
+        });
     }
 
     @Override

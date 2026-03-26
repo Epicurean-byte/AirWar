@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: plane-war-server
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  data-dir: ./data   # JSON 持久化目录，相对于服务启动目录
+
+logging:
+  level:
+    com.planewar: DEBUG

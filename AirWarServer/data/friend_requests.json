@@ -1,0 +1,6 @@
+[ {
+  "id" : 1,
+  "fromUserId" : 1,
+  "toUserId" : 2,
+  "status" : "ACCEPTED"
+} ]

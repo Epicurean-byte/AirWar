@@ -4,7 +4,7 @@
             "outputFile": "edu.hitsz.aircraftwar.android.app-mergeDebugResources-29:/values-pt/values-pt.xml",
             "map": [
                 {
-                    "source": "/Users/jialintu/.gradle/caches/8.14/transforms/7f1532cf61fac094c04b24d3ad763e84/transformed/core-1.13.0/res/values-pt/values-pt.xml",
+                    "source": "/Users/jialintu/.gradle/caches/8.14/transforms/9494ba31d1b0776e4225177fc8695aab/transformed/core-1.13.0/res/values-pt/values-pt.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "/Users/jialintu/.gradle/caches/8.14/transforms/e7b1bd3157d135f9b565f7cf96a97364/transformed/appcompat-1.7.0/res/values-pt/values-pt.xml",
+                    "source": "/Users/jialintu/.gradle/caches/8.14/transforms/6b4563ed97e09a34797c58cc1692263e/transformed/appcompat-1.7.0/res/values-pt/values-pt.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
