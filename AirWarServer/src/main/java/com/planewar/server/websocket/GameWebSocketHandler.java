@@ -1,54 +1,57 @@
 package com.planewar.server.websocket;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.planewar.server.datastore.InMemoryDataStore;
 import com.planewar.server.model.dto.WsMessageDto;
 import com.planewar.server.model.entity.Room;
-import com.planewar.server.model.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-/**
- * WebSocket 消息处理器，负责：
- * - 连接/断开管理
- * - 随机匹配与好友房间创建/加入
- * - 游戏内坐标移动、子弹/敌机同步、伤害事件转发
- *
- * 消息协议（JSON）：
- * {
- *   "type"   : "MATCH_RANDOM | CREATE_ROOM | JOIN_ROOM | START_GAME |
- *               MOVE | FIRE | PICKUP | ENEMY_SPAWN | ENEMY_MOVE |
- *               DAMAGE | SCORE_UPDATE | GAME_OVER",
- *   "roomId" : 0,
- *   "userId" : 12345,
- *   "payload": "{...}"
- * }
- *
- * 客户端连接时须在首条消息中携带 userId（type=AUTH）。
- */
 @Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GameWebSocketHandler.class);
 
+    private static final int WORLD_WIDTH = 512;
+    private static final int WORLD_HEIGHT = 768;
+    private static final int TICK_MS = 50;
+    private static final int MAX_ENEMIES = 12;
+
     private final MatchManager matchManager;
     private final InMemoryDataStore store;
+
+    private final ConcurrentHashMap<Long, BattleRoomState> battles = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService battleScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "battle-loop");
+        t.setDaemon(true);
+        return t;
+    });
 
     public GameWebSocketHandler(MatchManager matchManager, InMemoryDataStore store) {
         this.matchManager = matchManager;
         this.store = store;
+        battleScheduler.scheduleAtFixedRate(this::tickBattles, TICK_MS, TICK_MS, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        log.debug("新 WebSocket 连接：{}", session.getId());
+        log.debug("WebSocket connected: {}", session.getId());
     }
 
     @Override
@@ -57,45 +60,38 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         try {
             dto = JSON.parseObject(message.getPayload(), WsMessageDto.class);
         } catch (Exception e) {
-            sendError(session, "消息格式错误");
+            sendError(session, "invalid message json");
             return;
         }
 
-        String type = dto.getType();
-        if (type == null) {
-            sendError(session, "缺少 type 字段");
+        if (dto.getType() == null) {
+            sendError(session, "missing type");
             return;
         }
 
-        switch (type) {
+        switch (dto.getType()) {
             case "AUTH" -> handleAuth(session, dto);
-            case "MATCH_RANDOM" -> handleMatchRandom(session, dto);
-            case "CREATE_ROOM" -> handleCreateRoom(session, dto);
-            case "JOIN_ROOM" -> handleJoinRoom(session, dto);
-            case "START_GAME" -> handleStartGame(session, dto);
-            // 游戏内实时消息：直接转发给同房间的对手
-            case "MOVE", "FIRE", "PICKUP" -> forwardToOpponent(session, dto);
-            // 服务端权威消息：敌机生成/移动、伤害、分数更新
-            case "ENEMY_SPAWN", "ENEMY_MOVE", "COIN_DROP", "DAMAGE", "SCORE_UPDATE" ->
-                    broadcastToRoom(session, dto);
-            case "GAME_OVER" -> handleGameOver(session, dto);
-            default -> sendError(session, "未知消息类型: " + type);
+            case "MATCH_RANDOM" -> handleMatchRandom(session);
+            case "CREATE_ROOM" -> handleCreateRoom(session);
+            case "JOIN_ROOM" -> handleJoinRoom(session, dto.getRoomId());
+            case "START_GAME" -> handleStartGame(session, dto.getRoomId());
+            case "MOVE" -> handleMove(session, dto);
+            case "FIRE" -> handleFire(session);
+            case "PICKUP" -> {
+                // Reserved for compatibility in server-authoritative mode.
+            }
+            case "GAME_OVER" -> handleGameOver(session);
+            default -> sendError(session, "unknown type: " + dto.getType());
         }
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         long userId = Optional.ofNullable(matchManager.getUserIdBySession(session)).orElse(0L);
-        if (userId != 0) {
-            // 通知同房间对手
+        if (userId != 0L) {
             Long roomId = matchManager.getRoomIdByUserId(userId);
             if (roomId != null) {
-                WsMessageDto notice = new WsMessageDto();
-                notice.setType("OPPONENT_DISCONNECTED");
-                notice.setRoomId(roomId);
-                notice.setUserId(0);
-                notice.setPayload("{\"disconnectedUserId\":" + userId + "}");
-                broadcastToRoomExcept(roomId, userId, notice);
+                finishBattle(roomId, "PLAYER_DISCONNECTED", userId);
             }
             store.findById(userId).ifPresent(u -> u.setOnline(false));
         }
@@ -104,15 +100,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
-        log.warn("WebSocket 传输错误：{}", exception.getMessage());
+        log.warn("WebSocket transport error: {}", exception.getMessage());
     }
-
-    // -------- 处理器 --------
 
     private void handleAuth(WebSocketSession session, WsMessageDto dto) throws IOException {
         long userId = dto.getUserId();
         if (store.findById(userId).isEmpty()) {
-            sendError(session, "用户不存在");
+            sendError(session, "user not found");
             return;
         }
         matchManager.register(session, userId);
@@ -120,104 +114,289 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         send(session, buildMsg("AUTH_OK", 0, 0, "{\"userId\":" + userId + "}"));
     }
 
-    private void handleMatchRandom(WebSocketSession session, WsMessageDto dto) throws IOException {
+    private void handleMatchRandom(WebSocketSession session) throws IOException {
         long userId = requireAuth(session);
         if (userId < 0) return;
+
         Optional<Room> roomOpt = matchManager.randomMatch(userId);
-        if (roomOpt.isPresent()) {
-            Room room = roomOpt.get();
-            String payload = roomPayload(room);
-            send(session, buildMsg("MATCH_SUCCESS", room.getId(), 0, payload));
-            // 通知对手
-            WebSocketSession opponentSession = matchManager.getSessionByUserId(room.getPlayer1Id());
-            if (opponentSession != null) {
-                send(opponentSession, buildMsg("MATCH_SUCCESS", room.getId(), 0, payload));
-            }
-        } else {
+        if (roomOpt.isEmpty()) {
             send(session, buildMsg("MATCH_WAITING", 0, 0, "{}"));
+            return;
         }
+
+        Room room = roomOpt.get();
+        String payload = roomPayload(room);
+        broadcastToRoomAll(room.getId(), buildMsg("MATCH_SUCCESS", room.getId(), 0, payload));
     }
 
-    private void handleCreateRoom(WebSocketSession session, WsMessageDto dto) throws IOException {
+    private void handleCreateRoom(WebSocketSession session) throws IOException {
         long userId = requireAuth(session);
         if (userId < 0) return;
+
         Room room = matchManager.createRoom(userId);
         send(session, buildMsg("ROOM_CREATED", room.getId(), 0,
                 "{\"roomId\":" + room.getId() + ",\"hostId\":" + userId + "}"));
     }
 
-    private void handleJoinRoom(WebSocketSession session, WsMessageDto dto) throws IOException {
+    private void handleJoinRoom(WebSocketSession session, long roomId) throws IOException {
         long userId = requireAuth(session);
         if (userId < 0) return;
-        long roomId = dto.getRoomId();
+
         Optional<Room> roomOpt = matchManager.joinRoom(roomId, userId);
         if (roomOpt.isEmpty()) {
-            sendError(session, "房间不存在或已满");
+            sendError(session, "room not found or full");
             return;
         }
+
         Room room = roomOpt.get();
         String payload = roomPayload(room);
-        send(session, buildMsg("ROOM_JOINED", room.getId(), 0, payload));
-        // 通知房主
-        WebSocketSession hostSession = matchManager.getSessionByUserId(room.getPlayer1Id());
-        if (hostSession != null) {
-            send(hostSession, buildMsg("ROOM_JOINED", room.getId(), 0, payload));
-        }
+        broadcastToRoomAll(room.getId(), buildMsg("ROOM_JOINED", room.getId(), 0, payload));
     }
 
-    private void handleStartGame(WebSocketSession session, WsMessageDto dto) throws IOException {
+    private void handleStartGame(WebSocketSession session, long roomId) throws IOException {
         long userId = requireAuth(session);
         if (userId < 0) return;
-        long roomId = dto.getRoomId();
+
         Optional<Room> roomOpt = matchManager.startGame(roomId, userId);
         if (roomOpt.isEmpty()) {
-            sendError(session, "无法开始游戏，请检查房间状态");
+            sendError(session, "cannot start game");
             return;
         }
+
         Room room = roomOpt.get();
-        // 构建初始化指令，含随机种子和难度配置
+        BattleRoomState battle = new BattleRoomState(room);
+        battles.put(room.getId(), battle);
+
         String initPayload = String.format(
                 "{\"roomId\":%d,\"seed\":%d,\"player1Id\":%d,\"player2Id\":%d," +
-                "\"difficulty\":{\"enemyHpMultiplier\":1.5,\"spawnRate\":1.3,\"bulletDensity\":1.2}}",
+                        "\"difficulty\":{\"enemyHpMultiplier\":1.5,\"spawnRate\":1.3,\"bulletDensity\":1.2}}",
                 room.getId(), room.getGameSeed(), room.getPlayer1Id(), room.getPlayer2Id());
         broadcastToRoomAll(room.getId(), buildMsg("GAME_START", room.getId(), 0, initPayload));
     }
 
-    private void forwardToOpponent(WebSocketSession session, WsMessageDto dto) {
+    private void handleMove(WebSocketSession session, WsMessageDto dto) {
         long userId = Optional.ofNullable(matchManager.getUserIdBySession(session)).orElse(0L);
-        if (userId == 0) return;
+        if (userId == 0L) return;
         Long roomId = matchManager.getRoomIdByUserId(userId);
         if (roomId == null) return;
-        dto.setRoomId(roomId);
-        dto.setUserId(userId);
-        broadcastToRoomExcept(roomId, userId, dto);
+
+        BattleRoomState battle = battles.get(roomId);
+        if (battle == null || battle.finished) return;
+
+        PlayerState player = battle.players.get(userId);
+        if (player == null) return;
+
+        JSONObject payload = safePayload(dto.getPayload());
+        float x = clamp((float) payload.getDoubleValue("x"), 0, WORLD_WIDTH);
+        float y = clamp((float) payload.getDoubleValue("y"), 0, WORLD_HEIGHT);
+        player.x = x;
+        player.y = y;
     }
 
-    private void broadcastToRoom(WebSocketSession session, WsMessageDto dto) {
+    private void handleFire(WebSocketSession session) {
         long userId = Optional.ofNullable(matchManager.getUserIdBySession(session)).orElse(0L);
-        if (userId == 0) return;
+        if (userId == 0L) return;
         Long roomId = matchManager.getRoomIdByUserId(userId);
         if (roomId == null) return;
-        dto.setRoomId(roomId);
-        dto.setUserId(userId);
-        broadcastToRoomAll(roomId, dto);
+
+        BattleRoomState battle = battles.get(roomId);
+        if (battle == null || battle.finished) return;
+
+        synchronized (battle) {
+            PlayerState player = battle.players.get(userId);
+            if (player == null || player.hp <= 0) return;
+
+            EnemyState target = null;
+            double bestDist = Double.MAX_VALUE;
+            for (EnemyState enemy : battle.enemies.values()) {
+                double dx = enemy.x - player.x;
+                double dy = enemy.y - player.y;
+                if (dy > 0) continue;
+                double d2 = dx * dx + dy * dy;
+                if (d2 < bestDist) {
+                    bestDist = d2;
+                    target = enemy;
+                }
+            }
+            if (target == null) return;
+
+            target.hp -= 40;
+            if (target.hp <= 0) {
+                battle.enemies.remove(target.id);
+                long gainedScore = target.scoreValue;
+                long gainedCoins = 5 + battle.random.nextInt(16);
+                player.score += gainedScore;
+                player.coins += gainedCoins;
+            }
+        }
     }
 
-    private void handleGameOver(WebSocketSession session, WsMessageDto dto) {
+    private void handleGameOver(WebSocketSession session) {
         long userId = Optional.ofNullable(matchManager.getUserIdBySession(session)).orElse(0L);
-        if (userId == 0) return;
+        if (userId == 0L) return;
         Long roomId = matchManager.getRoomIdByUserId(userId);
         if (roomId == null) return;
-        // 通知对手游戏结束
-        broadcastToRoomExcept(roomId, userId, dto);
+        finishBattle(roomId, "PLAYER_QUIT", userId);
     }
 
-    // -------- 工具方法 --------
+    private void tickBattles() {
+        for (BattleRoomState battle : battles.values()) {
+            if (battle.finished) continue;
+            synchronized (battle) {
+                battle.tickCount++;
+
+                if (battle.tickCount % 16 == 0 && battle.enemies.size() < MAX_ENEMIES) {
+                    spawnEnemy(battle);
+                }
+
+                Iterator<EnemyState> it = battle.enemies.values().iterator();
+                while (it.hasNext()) {
+                    EnemyState enemy = it.next();
+                    enemy.y += enemy.speedY;
+                    if (enemy.y > WORLD_HEIGHT + 40) {
+                        it.remove();
+                        continue;
+                    }
+
+                    for (PlayerState player : battle.players.values()) {
+                        if (player.hp <= 0) continue;
+                        if (distance(enemy.x, enemy.y, player.x, player.y) < 28.0) {
+                            player.hp -= 12;
+                            it.remove();
+                            break;
+                        }
+                    }
+                }
+
+                boolean anyAlive = false;
+                for (PlayerState player : battle.players.values()) {
+                    if (player.hp > 0) {
+                        anyAlive = true;
+                        break;
+                    }
+                }
+
+                broadcastBattleState(battle);
+
+                if (!anyAlive || battle.tickCount > 20 * 120) {
+                    finishBattle(battle.roomId, "BATTLE_FINISHED", 0L);
+                }
+            }
+        }
+    }
+
+    private void spawnEnemy(BattleRoomState battle) {
+        int id = battle.nextEnemyId++;
+        float x = 30 + battle.random.nextInt(WORLD_WIDTH - 60);
+        float y = -20;
+        int type = battle.random.nextInt(3);
+        int hp = switch (type) {
+            case 0 -> 50;
+            case 1 -> 80;
+            default -> 120;
+        };
+        float speed = switch (type) {
+            case 0 -> 3.2f;
+            case 1 -> 2.4f;
+            default -> 1.8f;
+        };
+        long scoreValue = switch (type) {
+            case 0 -> 10;
+            case 1 -> 20;
+            default -> 50;
+        };
+        battle.enemies.put(id, new EnemyState(id, type, x, y, hp, speed, scoreValue));
+    }
+
+    private void broadcastBattleState(BattleRoomState battle) {
+        JSONObject payload = new JSONObject();
+        payload.put("tick", battle.tickCount);
+        payload.put("roomId", battle.roomId);
+
+        JSONArray players = new JSONArray();
+        for (PlayerState p : battle.players.values()) {
+            JSONObject item = new JSONObject();
+            item.put("userId", p.userId);
+            item.put("x", p.x);
+            item.put("y", p.y);
+            item.put("hp", Math.max(0, p.hp));
+            item.put("score", p.score);
+            item.put("coins", p.coins);
+            players.add(item);
+        }
+        payload.put("players", players);
+
+        JSONArray enemies = new JSONArray();
+        for (EnemyState e : battle.enemies.values()) {
+            JSONObject item = new JSONObject();
+            item.put("id", e.id);
+            item.put("type", e.type);
+            item.put("x", e.x);
+            item.put("y", e.y);
+            item.put("hp", e.hp);
+            enemies.add(item);
+        }
+        payload.put("enemies", enemies);
+
+        broadcastToRoomAll(battle.roomId, buildMsg("BATTLE_STATE", battle.roomId, 0, payload.toJSONString()));
+    }
+
+    private void finishBattle(long roomId, String reason, long sourceUserId) {
+        BattleRoomState battle = battles.get(roomId);
+        if (battle == null) return;
+
+        synchronized (battle) {
+            if (battle.finished) return;
+            battle.finished = true;
+
+            JSONObject payload = new JSONObject();
+            payload.put("roomId", roomId);
+            payload.put("reason", reason);
+            payload.put("sourceUserId", sourceUserId);
+
+            JSONArray players = new JSONArray();
+            long winnerUserId = 0;
+            double bestRating = Double.NEGATIVE_INFINITY;
+            for (PlayerState p : battle.players.values()) {
+                double rating = 0.1 * p.score + 0.9 * p.coins;
+                if (rating > bestRating) {
+                    bestRating = rating;
+                    winnerUserId = p.userId;
+                }
+                JSONObject item = new JSONObject();
+                item.put("userId", p.userId);
+                item.put("hp", Math.max(0, p.hp));
+                item.put("score", p.score);
+                item.put("coins", p.coins);
+                item.put("rating", rating);
+                players.add(item);
+            }
+            payload.put("players", players);
+            payload.put("winnerUserId", winnerUserId);
+
+            Room room = store.rooms.get(roomId);
+            if (room != null) {
+                room.setState(Room.State.FINISHED);
+            }
+
+            broadcastToRoomAll(roomId, buildMsg("GAME_OVER", roomId, 0, payload.toJSONString()));
+            battles.remove(roomId);
+        }
+    }
+
+    private JSONObject safePayload(String payload) {
+        if (payload == null || payload.isBlank()) return new JSONObject();
+        try {
+            return JSON.parseObject(payload);
+        } catch (Exception ignored) {
+            return new JSONObject();
+        }
+    }
 
     private long requireAuth(WebSocketSession session) throws IOException {
         Long userId = matchManager.getUserIdBySession(session);
         if (userId == null) {
-            sendError(session, "请先发送 AUTH 消息完成认证");
+            sendError(session, "please auth first");
             return -1;
         }
         return userId;
@@ -227,14 +406,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Room room = store.rooms.get(roomId);
         if (room == null) return;
         sendToUser(room.getPlayer1Id(), msg);
-        if (room.getPlayer2Id() != 0) sendToUser(room.getPlayer2Id(), msg);
-    }
-
-    private void broadcastToRoomExcept(long roomId, long exceptUserId, WsMessageDto msg) {
-        Room room = store.rooms.get(roomId);
-        if (room == null) return;
-        if (room.getPlayer1Id() != exceptUserId) sendToUser(room.getPlayer1Id(), msg);
-        if (room.getPlayer2Id() != 0 && room.getPlayer2Id() != exceptUserId) sendToUser(room.getPlayer2Id(), msg);
+        if (room.getPlayer2Id() != 0) {
+            sendToUser(room.getPlayer2Id(), msg);
+        }
     }
 
     private void sendToUser(long userId, WsMessageDto msg) {
@@ -243,7 +417,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             try {
                 send(s, msg);
             } catch (IOException e) {
-                log.warn("发送消息至用户 {} 失败：{}", userId, e.getMessage());
+                log.warn("send to user {} failed: {}", userId, e.getMessage());
             }
         }
     }
@@ -268,5 +442,68 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private String roomPayload(Room room) {
         return String.format("{\"roomId\":%d,\"player1Id\":%d,\"player2Id\":%d,\"state\":\"%s\"}",
                 room.getId(), room.getPlayer1Id(), room.getPlayer2Id(), room.getState());
+    }
+
+    private static float clamp(float v, float min, float max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    private static double distance(float x1, float y1, float x2, float y2) {
+        double dx = x1 - x2;
+        double dy = y1 - y2;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private static final class BattleRoomState {
+        private final long roomId;
+        private final ConcurrentHashMap<Long, PlayerState> players = new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<Integer, EnemyState> enemies = new ConcurrentHashMap<>();
+        private final Random random;
+        private volatile boolean finished = false;
+        private int tickCount = 0;
+        private int nextEnemyId = 1;
+
+        private BattleRoomState(Room room) {
+            this.roomId = room.getId();
+            this.random = new Random(room.getGameSeed());
+
+            players.put(room.getPlayer1Id(), new PlayerState(room.getPlayer1Id(), 180, 660));
+            players.put(room.getPlayer2Id(), new PlayerState(room.getPlayer2Id(), 330, 660));
+        }
+    }
+
+    private static final class PlayerState {
+        private final long userId;
+        private float x;
+        private float y;
+        private int hp = 100;
+        private long score = 0;
+        private long coins = 0;
+
+        private PlayerState(long userId, float x, float y) {
+            this.userId = userId;
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private static final class EnemyState {
+        private final int id;
+        private final int type;
+        private final float x;
+        private float y;
+        private int hp;
+        private final float speedY;
+        private final long scoreValue;
+
+        private EnemyState(int id, int type, float x, float y, int hp, float speedY, long scoreValue) {
+            this.id = id;
+            this.type = type;
+            this.x = x;
+            this.y = y;
+            this.hp = hp;
+            this.speedY = speedY;
+            this.scoreValue = scoreValue;
+        }
     }
 }

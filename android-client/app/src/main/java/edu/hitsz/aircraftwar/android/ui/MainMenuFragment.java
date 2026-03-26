@@ -37,7 +37,7 @@ public class MainMenuFragment extends Fragment {
         root.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
 
         var title = UiUtils.createTitle(requireContext(), "主菜单");
-        var welcome = UiUtils.createBody(requireContext(), "当前玩家：" + playerName);
+        var welcome = UiUtils.createBody(requireContext(), "当前玩家: " + playerName);
 
         Spinner difficultySpinner = new Spinner(requireContext());
         difficultySpinner.setAdapter(new ArrayAdapter<>(
@@ -53,7 +53,7 @@ public class MainMenuFragment extends Fragment {
         spinnerParams.topMargin = UiUtils.dp(requireContext(), 20);
         difficultySpinner.setLayoutParams(spinnerParams);
 
-        var startButton = UiUtils.createActionButton(requireContext(), "开始本地战斗");
+        var startButton = UiUtils.createActionButton(requireContext(), "开始单机战斗");
         startButton.setOnClickListener(view -> {
             String selected = String.valueOf(difficultySpinner.getSelectedItem());
             ((MainActivity) requireActivity()).showGame(Difficulty.valueOf(selected));
@@ -65,8 +65,14 @@ public class MainMenuFragment extends Fragment {
         var shopButton = UiUtils.createActionButton(requireContext(), "商城");
         shopButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showShop());
 
+        var leaderboardButton = UiUtils.createActionButton(requireContext(), "排行榜");
+        leaderboardButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showLeaderboard());
+
         var roomsButton = UiUtils.createActionButton(requireContext(), "对战房间");
         roomsButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showRooms());
+
+        var logoutButton = UiUtils.createActionButton(requireContext(), "退出登录");
+        logoutButton.setOnClickListener(view -> ((MainActivity) requireActivity()).logoutAndBackToLogin());
 
         root.addView(title);
         root.addView(welcome);
@@ -74,7 +80,9 @@ public class MainMenuFragment extends Fragment {
         root.addView(startButton);
         root.addView(friendsButton);
         root.addView(shopButton);
+        root.addView(leaderboardButton);
         root.addView(roomsButton);
+        root.addView(logoutButton);
         return root;
     }
 }

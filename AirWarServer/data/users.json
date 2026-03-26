@@ -1,0 +1,34 @@
+[ {
+  "id" : 1,
+  "username" : "ws_u1",
+  "password" : "123456",
+  "nickname" : "WS-P1",
+  "online" : false,
+  "highScore" : 777,
+  "coins" : 88,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ 2 ]
+}, {
+  "id" : 2,
+  "username" : "ws_u2",
+  "password" : "123456",
+  "nickname" : "WS-P2",
+  "online" : true,
+  "highScore" : 0,
+  "coins" : 0,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ 1 ]
+}, {
+  "id" : 3,
+  "username" : "jk",
+  "password" : "xa",
+  "nickname" : "jack",
+  "online" : false,
+  "highScore" : 0,
+  "coins" : 0,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ ]
+} ]
