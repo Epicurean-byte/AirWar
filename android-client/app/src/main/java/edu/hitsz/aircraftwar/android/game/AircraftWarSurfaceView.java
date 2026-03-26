@@ -37,7 +37,7 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
     private boolean surfaceReady = false;
     private int warmedSurfaceWidth = -1;
     private int warmedSurfaceHeight = -1;
-    //private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
+//    private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
     private boolean gameOverNotified = false;
     private GameOverListener gameOverListener;
     private HeroMoveListener heroMoveListener;
@@ -98,7 +98,7 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
             audioPlayer.playEvent(event);
         }
         GameSnapshot snapshot = gameEngine.snapshot();
-        // viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
+//         viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
         latestSnapshot = snapshot;
         if (snapshot.isGameOver() && !gameOverNotified) {
             gameOverNotified = true;

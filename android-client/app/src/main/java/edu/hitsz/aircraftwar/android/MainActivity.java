@@ -69,11 +69,6 @@ public class MainActivity extends AppCompatActivity {
         hideSystemBars();
     }
 
-    public void onLoginSubmitted(String playerName) {
-        if (playerName != null && !playerName.trim().isEmpty()) {
-            currentPlayerName = playerName.trim();
-        }
-    }
     public HttpApiClient getApiClient() {
         return apiClient;
     }

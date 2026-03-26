@@ -4,7 +4,7 @@
             "outputFile": "edu.hitsz.aircraftwar.android.app-mergeDebugResources-29:/values-port/values-port.xml",
             "map": [
                 {
-                    "source": "/Users/jialintu/.gradle/caches/8.14/transforms/6b4563ed97e09a34797c58cc1692263e/transformed/appcompat-1.7.0/res/values-port/values-port.xml",
+                    "source": "C:\\Users\\gxz\\.gradle\\caches\\8.14\\transforms\\6b4563ed97e09a34797c58cc1692263e\\transformed\\appcompat-1.7.0\\res\\values-port\\values-port.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

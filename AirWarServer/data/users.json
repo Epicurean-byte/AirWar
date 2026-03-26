@@ -31,4 +31,26 @@
   "equippedSkinId" : 0,
   "ownedSkins" : [ 0 ],
   "friendIds" : [ ]
+}, {
+  "id" : 4,
+  "username" : "fe",
+  "password" : "fe",
+  "nickname" : "fe",
+  "online" : false,
+  "highScore" : 10,
+  "coins" : 0,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ ]
+}, {
+  "id" : 5,
+  "username" : "cd",
+  "password" : "cd",
+  "nickname" : "cd",
+  "online" : false,
+  "highScore" : 0,
+  "coins" : 0,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ ]
 } ]
