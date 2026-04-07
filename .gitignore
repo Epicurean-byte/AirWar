@@ -33,3 +33,7 @@ ranklist_db
 hs_err_pid*
 
 local.properties
+
+.kiro
+
+target

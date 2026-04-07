@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment;
 
 import edu.hitsz.aircraftwar.android.network.HttpApiClient;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
+import edu.hitsz.aircraftwar.android.network.ServerConfigManager;
 import edu.hitsz.aircraftwar.android.network.SessionManager;
 import edu.hitsz.aircraftwar.android.network.WsGameClient;
 import edu.hitsz.aircraftwar.android.network.model.UserProfile;
@@ -23,6 +24,7 @@ import edu.hitsz.aircraftwar.android.ui.LoginFragment;
 import edu.hitsz.aircraftwar.android.ui.MainMenuFragment;
 import edu.hitsz.aircraftwar.android.ui.PvpGameFragment;
 import edu.hitsz.aircraftwar.android.ui.RoomsFragment;
+import edu.hitsz.aircraftwar.android.ui.SettingsFragment;
 import edu.hitsz.aircraftwar.android.ui.ShopFragment;
 import edu.hitsz.game.core.mode.Difficulty;
 import org.json.JSONObject;
@@ -50,6 +52,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // configureWindow();
+
+        // Initialize ServerConfigManager with context to load saved configuration
+        ServerConfigManager.getInstance().initialize(this);
 
         sessionManager = new SessionManager(this);
         currentUser = sessionManager.loadUserOrNull();
@@ -127,6 +132,10 @@ public class MainActivity extends AppCompatActivity {
         replaceFragment(new LeaderboardFragment(), true);
     }
 
+    public void showSettings() {
+        replaceFragment(new SettingsFragment(), true);
+    }
+
     public void showGame(Difficulty difficulty) {
         String playerName = currentUser == null ? "Player" : currentUser.getNickname();
         long userId = currentUser == null ? 0L : currentUser.getUserId();
@@ -185,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void disconnectGameWs() {
         if (wsGameClient != null) {
-            wsGameClient.close();
+            wsGameClient.cleanup();
             wsGameClient = null;
         }
     }

@@ -3,6 +3,7 @@ E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\model\enti
 E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\websocket\MatchManager.java
 E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\PlaneWarServerApplication.java
 E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\config\CorsConfig.java
+E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\config\ServerStartupListener.java
 E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\model\entity\FriendRequest.java
 E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\controller\ShopController.java
 E:\Code\Java\JP\AirWar\AirWarServer\src\main\java\com\planewar\server\datastore\InMemoryDataStore.java
