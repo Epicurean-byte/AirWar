@@ -66,13 +66,13 @@
   "friendIds" : [ ]
 }, {
   "id" : 7,
-  "username" : "dw",
-  "password" : "d",
-  "nickname" : "d",
+  "username" : "tujialin",
+  "password" : "1111",
+  "nickname" : "tujialin",
   "online" : true,
-  "highScore" : 310,
-  "coins" : 112,
-  "equippedSkinId" : 0,
-  "ownedSkins" : [ 0 ],
+  "highScore" : 1150,
+  "coins" : 657,
+  "equippedSkinId" : 1,
+  "ownedSkins" : [ 0, 1 ],
   "friendIds" : [ ]
 } ]

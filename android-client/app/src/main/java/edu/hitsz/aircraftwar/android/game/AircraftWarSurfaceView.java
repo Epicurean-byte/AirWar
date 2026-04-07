@@ -17,7 +17,8 @@ import edu.hitsz.game.core.event.GameEvent;
 import edu.hitsz.game.core.mode.Difficulty;
 
 public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder.Callback, GameLoopThread.FrameCallback {
-    private static final int FRAME_INTERVAL_MS = 16;
+    // Keep Android rendering smooth while slowing the fixed-step gameplay pace a bit.
+    private static final int FRAME_INTERVAL_MS = 20;
 
     public interface GameOverListener {
         void onGameOver(int score);
@@ -56,6 +57,12 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
         this.audioPlayer = new AndroidAudioPlayer(context);
         getHolder().addCallback(this);
         setFocusable(true);
+    }
+
+    public void setEquippedSkinId(int equippedSkinId) {
+        skinManager.setEquippedHeroSkinId(equippedSkinId);
+        warmedSurfaceWidth = -1;
+        warmedSurfaceHeight = -1;
     }
 
     @Override

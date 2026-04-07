@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 商城 HTTP 接口：查询、购买、装备皮肤。
+ * 商城 HTTP 接口：查询、购买、装备皮肤与纪念品。
  */
 @RestController
 @RequestMapping("/api/shop")
@@ -23,7 +23,7 @@ public class ShopController {
     }
 
     /**
-     * 获取商城数据：返回用户余额、所有皮肤列表（含是否已拥有标记）、当前装备皮肤。
+     * 获取商城数据：返回用户余额、所有商品列表（含是否已拥有标记）、当前装备皮肤。
      */
     @GetMapping("/info")
     public ApiResponse<Map<String, Object>> shopInfo(@RequestParam long userId) {
@@ -37,6 +37,8 @@ public class ShopController {
             m.put("name", s.getName());
             m.put("description", s.getDescription());
             m.put("price", s.getPrice());
+            m.put("category", s.getCategory());
+            m.put("equippable", s.isEquippable());
             m.put("assetName", s.getAssetName());
             m.put("owned", user.getOwnedSkins().contains(s.getSkinId()));
             return m;
@@ -50,7 +52,7 @@ public class ShopController {
     }
 
     /**
-     * 购买皮肤。
+     * 购买商品。
      */
     @PostMapping("/buy")
     public ApiResponse<Map<String, Object>> buy(@RequestBody Map<String, Object> body) {
@@ -62,10 +64,10 @@ public class ShopController {
         User user = opt.get();
 
         Optional<SkinConfig> skinOpt = store.findSkinById(skinId);
-        if (skinOpt.isEmpty()) return ApiResponse.fail("皮肤不存在");
+        if (skinOpt.isEmpty()) return ApiResponse.fail("商品不存在");
         SkinConfig skin = skinOpt.get();
 
-        if (user.getOwnedSkins().contains(skinId)) return ApiResponse.fail("已拥有该皮肤");
+        if (user.getOwnedSkins().contains(skinId)) return ApiResponse.fail("已拥有该物品");
         if (user.getCoins() < skin.getPrice()) return ApiResponse.fail("金币不足");
 
         synchronized (user) {
@@ -77,12 +79,12 @@ public class ShopController {
         store.flushUsers();
         Map<String, Object> resp = new HashMap<>();
         resp.put("coins", user.getCoins());
-        resp.put("ownedSkins", user.getOwnedSkins());
+        resp.put("ownedItems", user.getOwnedSkins());
         return ApiResponse.ok(resp);
     }
 
     /**
-     * 装备皮肤。
+     * 装备飞机皮肤。
      */
     @PostMapping("/equip")
     public ApiResponse<Void> equip(@RequestBody Map<String, Object> body) {
@@ -93,6 +95,10 @@ public class ShopController {
         if (opt.isEmpty()) return ApiResponse.fail("用户不存在");
         User user = opt.get();
 
+        Optional<SkinConfig> skinOpt = store.findSkinById(skinId);
+        if (skinOpt.isEmpty()) return ApiResponse.fail("商品不存在");
+        SkinConfig skin = skinOpt.get();
+        if (!skin.isEquippable()) return ApiResponse.fail("该物品不可装备");
         if (!user.getOwnedSkins().contains(skinId)) return ApiResponse.fail("未拥有该皮肤");
         user.setEquippedSkinId(skinId);
         store.flushUsers();

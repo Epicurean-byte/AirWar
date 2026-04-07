@@ -65,6 +65,9 @@ public class MainMenuFragment extends Fragment {
         var shopButton = UiUtils.createActionButton(requireContext(), "商城");
         shopButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showShop());
 
+        var warehouseButton = UiUtils.createActionButton(requireContext(), "仓库");
+        warehouseButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showWarehouse());
+
         var leaderboardButton = UiUtils.createActionButton(requireContext(), "排行榜");
         leaderboardButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showLeaderboard());
 
@@ -83,6 +86,7 @@ public class MainMenuFragment extends Fragment {
         root.addView(startButton);
         root.addView(friendsButton);
         root.addView(shopButton);
+        root.addView(warehouseButton);
         root.addView(leaderboardButton);
         root.addView(roomsButton);
         root.addView(settingsButton);

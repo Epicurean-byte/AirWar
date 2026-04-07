@@ -22,7 +22,7 @@ public class NormalGameMode extends AbstractGameMode {
 
     @Override
     protected int initialCycleDuration() {
-        return 320;
+        return 360;
     }
 
     @Override
@@ -48,8 +48,8 @@ public class NormalGameMode extends AbstractGameMode {
     @Override
     protected EnemyFactoryManager buildEnemyFactoryManager() {
         return new EnemyFactoryManager(
-                new MobEnemyFactory(8, 60),
-                new EliteEnemyFactory(6, 140),
+                new MobEnemyFactory(7, 60),
+                new EliteEnemyFactory(5, 140),
                 new SuperEliteEnemyFactory(4, 200),
                 initialEliteProbability(),
                 initialSuperEliteProbability()
@@ -63,14 +63,14 @@ public class NormalGameMode extends AbstractGameMode {
 
     @Override
     protected void adjustDifficulty(GameWorld world, int timeMs, int score) {
-        int newStage = timeMs / 20000;
+        int newStage = timeMs / 24000;
         if (newStage > stage) {
             stage = newStage;
             world.setEnemyMaxNumber(Math.min(9, world.getEnemyMaxNumber() + 1));
-            world.setCycleDuration(Math.max(220, world.getCycleDuration() - 20));
+            world.setCycleDuration(Math.max(280, world.getCycleDuration() - 15));
             world.getEnemyFactoryManager().setProbabilities(
-                    Math.min(0.38, world.getEnemyFactoryManager().getEliteProbability() + 0.02),
-                    Math.min(0.16, world.getEnemyFactoryManager().getSuperEliteProbability() + 0.01)
+                    Math.min(0.34, world.getEnemyFactoryManager().getEliteProbability() + 0.015),
+                    Math.min(0.14, world.getEnemyFactoryManager().getSuperEliteProbability() + 0.008)
             );
         }
     }

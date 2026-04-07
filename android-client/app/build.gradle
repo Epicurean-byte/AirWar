@@ -27,6 +27,41 @@ android {
     }
 }
 
+tasks.register("purgeInvalidGeneratedArtifacts") {
+    doLast {
+        def invalidFiles = fileTree(layout.buildDirectory.get().asFile).matching {
+            include '**/* *'
+        }.files
+        if (!invalidFiles.isEmpty()) {
+            delete(invalidFiles)
+        }
+    }
+}
+
+tasks.register("syncShopItemResources") {
+    doLast {
+        def sourceDir = rootProject.file("shop_items")
+        def targetDir = project.file("src/main/res/drawable-nodpi")
+        if (!sourceDir.exists()) {
+            return
+        }
+        targetDir.mkdirs()
+        copy {
+            from(sourceDir)
+            include "item_*.png"
+            rename { String fileName ->
+                return "shop_${fileName}"
+            }
+            into(targetDir)
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(tasks.named("purgeInvalidGeneratedArtifacts"))
+    dependsOn(tasks.named("syncShopItemResources"))
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }

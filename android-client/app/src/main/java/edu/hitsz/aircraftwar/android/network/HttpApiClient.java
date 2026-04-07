@@ -112,6 +112,8 @@ public final class HttpApiClient {
                         s.optString("name", ""),
                         s.optString("description", ""),
                         s.optLong("price", 0L),
+                        s.optString("category", ""),
+                        s.optBoolean("equippable", false),
                         s.optString("assetName", ""),
                         s.optBoolean("owned", false)
                 ));
@@ -226,8 +228,10 @@ public final class HttpApiClient {
     private List<UserProfile> parseUserList(JSONArray arr) {
         List<UserProfile> users = new ArrayList<>();
         for (int i = 0; i < arr.length(); i++) {
-            System.out.println("Debug parseUserList");
-//            users.add(parseUserProfile(arr.getJSONObject(i)));
+            JSONObject item = arr.optJSONObject(i);
+            if (item != null) {
+                users.add(parseUserProfile(item));
+            }
         }
         return users;
     }
@@ -235,14 +239,15 @@ public final class HttpApiClient {
     private List<LeaderboardEntry> parseLeaderboard(JSONArray arr) {
         List<LeaderboardEntry> list = new ArrayList<>();
         for (int i = 0; i < arr.length(); i++) {
-            System.out.println("Debug parseLeaderboard");
-//            JSONObject o = arr.getJSONObject(i);
-//            list.add(new LeaderboardEntry(
-//                    o.optLong("userId", 0L),
-//                    o.optString("nickname", ""),
-//                    o.optLong("value", 0L),
-//                    o.optInt("equippedSkinId", 0)
-//            ));
+            JSONObject item = arr.optJSONObject(i);
+            if (item != null) {
+                list.add(new LeaderboardEntry(
+                        item.optLong("userId", 0L),
+                        item.optString("nickname", ""),
+                        item.optLong("value", 0L),
+                        item.optInt("equippedSkinId", 0)
+                ));
+            }
         }
         return list;
     }

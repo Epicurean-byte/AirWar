@@ -12,6 +12,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
 import edu.hitsz.aircraftwar.android.network.HttpApiClient;
+import edu.hitsz.aircraftwar.android.network.LocalInventoryManager;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
 import edu.hitsz.aircraftwar.android.network.ServerConfigManager;
 import edu.hitsz.aircraftwar.android.network.SessionManager;
@@ -26,6 +27,7 @@ import edu.hitsz.aircraftwar.android.ui.PvpGameFragment;
 import edu.hitsz.aircraftwar.android.ui.RoomsFragment;
 import edu.hitsz.aircraftwar.android.ui.SettingsFragment;
 import edu.hitsz.aircraftwar.android.ui.ShopFragment;
+import edu.hitsz.aircraftwar.android.ui.WarehouseFragment;
 import edu.hitsz.game.core.mode.Difficulty;
 import org.json.JSONObject;
 
@@ -43,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private final HttpApiClient apiClient = new HttpApiClient();
 
     private SessionManager sessionManager;
+    private LocalInventoryManager localInventoryManager;
     private UserProfile currentUser;
     private WsGameClient wsGameClient;
     private GameWsListener wsListener;
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
         ServerConfigManager.getInstance().initialize(this);
 
         sessionManager = new SessionManager(this);
+        localInventoryManager = new LocalInventoryManager(this);
         currentUser = sessionManager.loadUserOrNull();
 
         if (savedInstanceState == null) {
@@ -82,10 +86,26 @@ public class MainActivity extends AppCompatActivity {
         return currentUser;
     }
 
+    public LocalInventoryManager getLocalInventoryManager() {
+        return localInventoryManager;
+    }
+
     public void onUserAuthenticated(UserProfile user) {
         currentUser = user;
         sessionManager.saveUser(user);
         showMainMenu();
+    }
+
+    public void updateCurrentUser(UserProfile user) {
+        currentUser = user;
+        sessionManager.saveUser(user);
+    }
+
+    public void updateCoinsAndEquippedSkin(long coins, int equippedSkinId) {
+        if (currentUser == null) {
+            return;
+        }
+        updateCurrentUser(currentUser.withCoinsAndEquippedSkin(coins, equippedSkinId));
     }
 
     public void logoutAndBackToLogin() {
@@ -122,6 +142,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void showShop() {
         replaceFragment(new ShopFragment(), true);
+    }
+
+    public void showWarehouse() {
+        replaceFragment(new WarehouseFragment(), true);
     }
 
     public void showRooms() {

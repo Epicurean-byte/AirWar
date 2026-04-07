@@ -50,9 +50,13 @@ public class GameFragment extends Fragment {
         Difficulty difficulty = Difficulty.valueOf(args.getString(ARG_DIFFICULTY, Difficulty.NORMAL.name()));
         String playerName = args.getString(ARG_PLAYER, "Player");
         long userId = args.getLong(ARG_USER_ID, 0L);
+        int equippedSkinId = ((MainActivity) requireActivity()).getCurrentUser() == null
+                ? 0
+                : ((MainActivity) requireActivity()).getCurrentUser().getEquippedSkinId();
 
         FrameLayout root = new FrameLayout(requireContext());
         surfaceView = new AircraftWarSurfaceView(requireContext(), difficulty);
+        surfaceView.setEquippedSkinId(equippedSkinId);
         surfaceView.setGameOverListener(score -> submitSettle(userId, score));
         root.addView(surfaceView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,

@@ -1,9 +1,11 @@
 package edu.hitsz.aircraftwar.android.game;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,6 +14,9 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import edu.hitsz.aircraftwar.android.R;
+import edu.hitsz.aircraftwar.android.ui.ShopItemVisuals;
 
 public class PvpBattleView extends View {
 
@@ -41,12 +46,21 @@ public class PvpBattleView extends View {
     private static final float WORLD_WIDTH = 512f;
     private static final float WORLD_HEIGHT = 768f;
 
-    private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint myPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint otherPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint enemyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint hudPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint hudPanelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint hudStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint hudTitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint hudBodyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint enemyHpPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint enemyHpBackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint scanlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF tempRect = new RectF();
+
+    private final Bitmap backgroundBitmap;
+    private Bitmap myPlaneBitmap;
+    private final Bitmap enemyPlaneBitmap;
+    private final Bitmap mobEnemyBitmap;
+    private final Bitmap eliteEnemyBitmap;
+    private final Bitmap bossEnemyBitmap;
 
     private long myUserId;
     private float myX = 256f;
@@ -68,16 +82,36 @@ public class PvpBattleView extends View {
 
     public PvpBattleView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
-        bgPaint.setColor(0xFF0B1220);
-        gridPaint.setColor(0x1FFFFFFF);
-        gridPaint.setStrokeWidth(1.2f);
+        backgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_bg_normal);
+        myPlaneBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_hero);
+        enemyPlaneBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_elite_plus);
+        mobEnemyBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_mob);
+        eliteEnemyBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_elite);
+        bossEnemyBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_boss);
 
-        myPaint.setColor(0xFF2ED1FF);
-        otherPaint.setColor(0xFFFF8A65);
-        enemyPaint.setColor(0xFFFFEB3B);
+        hudPanelPaint.setColor(0xA6171F14);
+        hudStrokePaint.setColor(0xCCB99547);
+        hudStrokePaint.setStyle(Paint.Style.STROKE);
+        hudStrokePaint.setStrokeWidth(2.5f);
 
-        hudPaint.setColor(Color.WHITE);
-        hudPaint.setTextSize(32f);
+        hudTitlePaint.setColor(0xFFF4F4E8);
+        hudTitlePaint.setFakeBoldText(true);
+        hudTitlePaint.setTextSize(28f);
+
+        hudBodyPaint.setColor(0xFFE1E6CF);
+        hudBodyPaint.setTextSize(22f);
+
+        enemyHpPaint.setColor(0xFFD95D47);
+        enemyHpBackPaint.setColor(0x66110E0B);
+
+        scanlinePaint.setColor(0x11FFFFFF);
+        scanlinePaint.setStrokeWidth(1.2f);
+    }
+
+    public void setMyPlaneSkinId(int equippedSkinId) {
+        int resId = ShopItemVisuals.resolveHeroDrawableResId(equippedSkinId);
+        myPlaneBitmap = BitmapFactory.decodeResource(getResources(), resId);
+        invalidate();
     }
 
     public void setMyUserId(long myUserId) {
@@ -111,28 +145,11 @@ public class PvpBattleView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bgPaint);
-
-        for (int i = 0; i < 8; i++) {
-            float y = i * canvas.getHeight() / 8f;
-            canvas.drawLine(0, y, canvas.getWidth(), y, gridPaint);
-        }
-
-        for (EnemyState enemy : enemies) {
-            float sx = worldToScreenX(enemy.x);
-            float sy = worldToScreenY(enemy.y);
-            float r = enemy.type == 2 ? 18f : 14f;
-            canvas.drawCircle(sx, sy, r, enemyPaint);
-        }
-
-        canvas.drawCircle(worldToScreenX(myX), worldToScreenY(myY), 16f, myPaint);
-
-        if (enemyPlayerX >= 0 && enemyPlayerY >= 0) {
-            canvas.drawCircle(worldToScreenX(enemyPlayerX), worldToScreenY(enemyPlayerY), 16f, otherPaint);
-        }
-
-        canvas.drawText("HP:" + myHp + " SCORE:" + myScore + " COINS:" + myCoins, 16f, 40f, hudPaint);
-        canvas.drawText("ENEMY_HP:" + Math.max(0, enemyPlayerHp), 16f, 78f, hudPaint);
+        drawBackground(canvas);
+        drawCombatLane(canvas);
+        drawEnemies(canvas);
+        drawPlayers(canvas);
+        drawHud(canvas);
     }
 
     @Override
@@ -155,6 +172,85 @@ public class PvpBattleView extends View {
             return true;
         }
         return super.onTouchEvent(event);
+    }
+
+    private void drawBackground(Canvas canvas) {
+        if (backgroundBitmap == null) {
+            canvas.drawColor(0xFF0E1611);
+            return;
+        }
+        tempRect.set(0, 0, canvas.getWidth(), canvas.getHeight());
+        canvas.drawBitmap(backgroundBitmap, null, tempRect, null);
+    }
+
+    private void drawCombatLane(Canvas canvas) {
+        float width = canvas.getWidth();
+        float height = canvas.getHeight();
+        for (int i = 1; i < 10; i++) {
+            float y = i * height / 10f;
+            canvas.drawLine(width * 0.08f, y, width * 0.92f, y, scanlinePaint);
+        }
+    }
+
+    private void drawEnemies(Canvas canvas) {
+        for (EnemyState enemy : enemies) {
+            Bitmap bitmap = switch (enemy.type) {
+                case 1 -> eliteEnemyBitmap;
+                case 2, 3 -> bossEnemyBitmap;
+                default -> mobEnemyBitmap;
+            };
+            float width = enemy.type >= 2 ? 88f : enemy.type == 1 ? 64f : 52f;
+            float height = enemy.type >= 2 ? 88f : enemy.type == 1 ? 64f : 52f;
+            drawSprite(canvas, bitmap, worldToScreenX(enemy.x), worldToScreenY(enemy.y), width, height);
+
+            float hpWidth = width * 0.86f;
+            float barLeft = worldToScreenX(enemy.x) - hpWidth / 2f;
+            float barTop = worldToScreenY(enemy.y) - height / 2f - 12f;
+            tempRect.set(barLeft, barTop, barLeft + hpWidth, barTop + 7f);
+            canvas.drawRoundRect(tempRect, 4f, 4f, enemyHpBackPaint);
+            float hpRatio = Math.max(0f, Math.min(1f, enemy.hp / 240f));
+            tempRect.set(barLeft, barTop, barLeft + hpWidth * hpRatio, barTop + 7f);
+            canvas.drawRoundRect(tempRect, 4f, 4f, enemyHpPaint);
+        }
+    }
+
+    private void drawPlayers(Canvas canvas) {
+        drawSprite(canvas, myPlaneBitmap, worldToScreenX(myX), worldToScreenY(myY), 76f, 76f);
+        if (enemyPlayerX >= 0 && enemyPlayerY >= 0) {
+            drawSprite(canvas, enemyPlaneBitmap, worldToScreenX(enemyPlayerX), worldToScreenY(enemyPlayerY), 76f, 76f);
+        }
+    }
+
+    private void drawHud(Canvas canvas) {
+        float panelHeight = 116f;
+        tempRect.set(20f, 18f, canvas.getWidth() - 20f, 18f + panelHeight);
+        canvas.drawRoundRect(tempRect, 24f, 24f, hudPanelPaint);
+        canvas.drawRoundRect(tempRect, 24f, 24f, hudStrokePaint);
+
+        canvas.drawText("PVP DUEL", 40f, 54f, hudTitlePaint);
+        canvas.drawText("MY HP " + myHp + "   SCORE " + myScore + "   COINS " + myCoins, 40f, 84f, hudBodyPaint);
+        canvas.drawText("ENEMY HP " + Math.max(0, enemyPlayerHp) + "   TARGETS " + enemies.size(), 40f, 110f, hudBodyPaint);
+
+        float radarTop = canvas.getHeight() - 96f;
+        tempRect.set(20f, radarTop, canvas.getWidth() - 20f, canvas.getHeight() - 20f);
+        canvas.drawRoundRect(tempRect, 24f, 24f, hudPanelPaint);
+        canvas.drawRoundRect(tempRect, 24f, 24f, hudStrokePaint);
+        canvas.drawText("拖动控制机体，按下时自动开火", 36f, canvas.getHeight() - 48f, hudBodyPaint);
+    }
+
+    private void drawSprite(Canvas canvas, @Nullable Bitmap bitmap, float centerX, float centerY, float drawWidth, float drawHeight) {
+        if (bitmap == null) {
+            return;
+        }
+        float pixelWidth = drawWidth / WORLD_WIDTH * getWidth();
+        float pixelHeight = drawHeight / WORLD_HEIGHT * getHeight();
+        tempRect.set(
+                centerX - pixelWidth / 2f,
+                centerY - pixelHeight / 2f,
+                centerX + pixelWidth / 2f,
+                centerY + pixelHeight / 2f
+        );
+        canvas.drawBitmap(bitmap, null, tempRect, null);
     }
 
     private float worldToScreenX(float x) {
