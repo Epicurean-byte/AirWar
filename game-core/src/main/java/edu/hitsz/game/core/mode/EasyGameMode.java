@@ -5,7 +5,6 @@ import edu.hitsz.game.core.factory.BossEnemyFactory;
 import edu.hitsz.game.core.factory.EliteEnemyFactory;
 import edu.hitsz.game.core.factory.EnemyFactoryManager;
 import edu.hitsz.game.core.factory.MobEnemyFactory;
-import edu.hitsz.game.core.factory.SuperEliteEnemyFactory;
 
 public class EasyGameMode extends AbstractGameMode {
     public EasyGameMode() {
@@ -19,7 +18,7 @@ public class EasyGameMode extends AbstractGameMode {
 
     @Override
     protected int initialCycleDuration() {
-        return 380;
+        return 440;
     }
 
     @Override
@@ -29,7 +28,7 @@ public class EasyGameMode extends AbstractGameMode {
 
     @Override
     protected double initialSuperEliteProbability() {
-        return 0.05;
+        return 0.0;
     }
 
     @Override
@@ -44,10 +43,11 @@ public class EasyGameMode extends AbstractGameMode {
 
     @Override
     protected EnemyFactoryManager buildEnemyFactoryManager() {
+        MobEnemyFactory mobFactory = new MobEnemyFactory(5, 45);
         return new EnemyFactoryManager(
-                new MobEnemyFactory(6, 45),
-                new EliteEnemyFactory(5, 100),
-                new SuperEliteEnemyFactory(4, 150),
+                mobFactory,
+                new EliteEnemyFactory(4, 100),
+                mobFactory,
                 initialEliteProbability(),
                 initialSuperEliteProbability()
         );

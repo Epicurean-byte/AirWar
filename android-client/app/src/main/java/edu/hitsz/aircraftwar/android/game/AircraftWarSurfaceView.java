@@ -17,7 +17,8 @@ import edu.hitsz.game.core.event.GameEvent;
 import edu.hitsz.game.core.mode.Difficulty;
 
 public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder.Callback, GameLoopThread.FrameCallback {
-    private static final int FRAME_INTERVAL_MS = 16;
+    // Keep Android rendering smooth while slowing the fixed-step gameplay pace a bit.
+    private static final int FRAME_INTERVAL_MS = 20;
 
     public interface GameOverListener {
         void onGameOver(int score);
@@ -37,7 +38,7 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
     private boolean surfaceReady = false;
     private int warmedSurfaceWidth = -1;
     private int warmedSurfaceHeight = -1;
-    //private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
+//    private GameViewport viewport = GameViewport.fill(1, 1, BitmapSkinManager.DESKTOP_WORLD_WIDTH, BitmapSkinManager.DESKTOP_WORLD_HEIGHT);
     private boolean gameOverNotified = false;
     private GameOverListener gameOverListener;
     private HeroMoveListener heroMoveListener;
@@ -56,6 +57,12 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
         this.audioPlayer = new AndroidAudioPlayer(context);
         getHolder().addCallback(this);
         setFocusable(true);
+    }
+
+    public void setEquippedSkinId(int equippedSkinId) {
+        skinManager.setEquippedHeroSkinId(equippedSkinId);
+        warmedSurfaceWidth = -1;
+        warmedSurfaceHeight = -1;
     }
 
     @Override
@@ -98,7 +105,7 @@ public class AircraftWarSurfaceView extends SurfaceView implements SurfaceHolder
             audioPlayer.playEvent(event);
         }
         GameSnapshot snapshot = gameEngine.snapshot();
-        // viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
+//         viewport = GameViewport.fill(getWidth(), getHeight(), snapshot.getWorldWidth(), snapshot.getWorldHeight());
         latestSnapshot = snapshot;
         if (snapshot.isGameOver() && !gameOverNotified) {
             gameOverNotified = true;

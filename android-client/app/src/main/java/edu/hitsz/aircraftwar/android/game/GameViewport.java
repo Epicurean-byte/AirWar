@@ -53,6 +53,10 @@ public final class GameViewport {
         );
     }
 
+    public static GameViewport fit(int surfaceWidth, int surfaceHeight, int worldWidth, int worldHeight) {
+        return fill(surfaceWidth, surfaceHeight, worldWidth, worldHeight);
+    }
+
     public RectF worldRectToScreen(float centerX, float centerY, float width, float height) {
         float halfWidth = width * spriteScale / 2.0f;
         float halfHeight = height * spriteScale / 2.0f;

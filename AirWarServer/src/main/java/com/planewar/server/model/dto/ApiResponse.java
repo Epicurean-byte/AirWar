@@ -1,13 +1,12 @@
 package com.planewar.server.model.dto;
-
-import lombok.Data;
-
-@Data
 public class ApiResponse<T> {
 
     private int code;
     private String message;
     private T data;
+
+    public ApiResponse() {
+    }
 
     public static <T> ApiResponse<T> ok(T data) {
         ApiResponse<T> r = new ApiResponse<>();
@@ -30,5 +29,29 @@ public class ApiResponse<T> {
 
     public static <T> ApiResponse<T> fail(String message) {
         return fail(400, message);
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
     }
 }

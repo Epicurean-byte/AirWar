@@ -52,4 +52,16 @@ public final class UserProfile {
     public int getEquippedSkinId() {
         return equippedSkinId;
     }
+
+    public UserProfile withCoinsAndEquippedSkin(long updatedCoins, int updatedEquippedSkinId) {
+        return new UserProfile(
+                userId,
+                username,
+                nickname,
+                online,
+                highScore,
+                updatedCoins,
+                updatedEquippedSkinId
+        );
+    }
 }

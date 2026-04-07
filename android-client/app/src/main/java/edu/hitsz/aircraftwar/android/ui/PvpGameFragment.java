@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -72,10 +73,12 @@ public class PvpGameFragment extends Fragment {
 
         MainActivity activity = (MainActivity) requireActivity();
         myUserId = activity.getCurrentUser() == null ? 0L : activity.getCurrentUser().getUserId();
+        int equippedSkinId = activity.getCurrentUser() == null ? 0 : activity.getCurrentUser().getEquippedSkinId();
 
         FrameLayout root = new FrameLayout(requireContext());
         battleView = new PvpBattleView(requireContext());
         battleView.setMyUserId(myUserId);
+        battleView.setMyPlaneSkinId(equippedSkinId);
         battleView.setInputListener(new PvpBattleView.InputListener() {
             @Override
             public void onMove(float x, float y) {
@@ -100,27 +103,28 @@ public class PvpGameFragment extends Fragment {
 
         int margin = UiUtils.dp(requireContext(), 12);
 
-        statusView = UiUtils.createBody(requireContext(), "PVP房间#" + roomId + " seed=" + seed + " 连接中...");
-        statusView.setBackgroundColor(0x66333333);
-        statusView.setTextColor(0xFFFFFFFF);
-        statusView.setPadding(margin, UiUtils.dp(requireContext(), 8), margin, UiUtils.dp(requireContext(), 8));
+        LinearLayout topPanel = UiUtils.createPanel(requireContext(), 12);
+        topPanel.setOrientation(LinearLayout.VERTICAL);
+        topPanel.addView(UiUtils.createSectionTitle(requireContext(), "联机空域"));
+        statusView = UiUtils.createCaption(requireContext(), "PVP房间#" + roomId + " seed=" + seed + " 连接中...");
+        UiUtils.setTopMargin(statusView, requireContext(), 6);
+        topPanel.addView(statusView);
         FrameLayout.LayoutParams statusParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         statusParams.gravity = Gravity.TOP | Gravity.START;
         statusParams.setMargins(margin, margin, margin, margin);
-        root.addView(statusView, statusParams);
+        root.addView(topPanel, statusParams);
 
-        Button exitButton = new Button(requireContext());
-        exitButton.setText("退出联机");
+        Button exitButton = UiUtils.createSecondaryButton(requireContext(), "退出联机");
         exitButton.setOnClickListener(v -> {
             ((MainActivity) requireActivity()).sendWs("GAME_OVER", roomId, null);
             settlePvp();
             ((MainActivity) requireActivity()).showMainMenu();
         });
         FrameLayout.LayoutParams exitParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         exitParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
@@ -137,7 +141,7 @@ public class PvpGameFragment extends Fragment {
         activity.setWsListener(new MainActivity.GameWsListener() {
             @Override
             public void onOpen() {
-                statusView.setText("PVP房间#" + roomId + " 已连接");
+                statusView.setText("房间#" + roomId + " 已建立链路，等待实时对战数据。");
             }
 
             @Override
@@ -231,7 +235,7 @@ public class PvpGameFragment extends Fragment {
         }
 
         battleView.updateState(players, enemies);
-        statusView.setText("PVP房间#" + roomId + " score=" + myScore + " coins=" + myCoins);
+        statusView.setText("房间#" + roomId + "  战绩 " + myScore + "  金币 " + myCoins + "  敌机 " + enemies.size());
     }
 
     private void onGameOver(JSONObject payload) {

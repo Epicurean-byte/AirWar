@@ -6,8 +6,11 @@ import android.graphics.BitmapFactory;
 import android.util.LruCache;
 
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 
 import edu.hitsz.aircraftwar.android.R;
+import edu.hitsz.aircraftwar.android.ui.ShopItemVisuals;
 import edu.hitsz.game.core.config.GameSessionConfig;
 import edu.hitsz.game.core.config.Size;
 import edu.hitsz.game.core.config.SpriteId;
@@ -25,7 +28,9 @@ public final class BitmapSkinManager {
     private final EnumMap<SkinId, EnumMap<SpriteId, SpriteAsset>> skinRegistry = new EnumMap<>(SkinId.class);
     private final LruCache<String, Bitmap> bitmapCache = new LruCache<>(64);
     private final LruCache<Integer, Bitmap> sourceBitmapCache = new LruCache<>(32);
+    private final Map<Integer, SpriteAsset> heroAssetCache = new HashMap<>();
     private SkinId activeSkin = SkinId.CLASSIC;
+    private int equippedHeroSkinId = 0;
 
     public BitmapSkinManager(Context context) {
         this.appContext = context.getApplicationContext();
@@ -37,6 +42,11 @@ public final class BitmapSkinManager {
         bitmapCache.evictAll();
     }
 
+    public void setEquippedHeroSkinId(int skinId) {
+        this.equippedHeroSkinId = skinId;
+        bitmapCache.evictAll();
+    }
+
     public GameSessionConfig createDesktopSessionConfig() {
         EnumMap<SpriteId, Size> spriteSizes = new EnumMap<>(SpriteId.class);
         EnumMap<SpriteId, SpriteAsset> spriteMap = skinRegistry.get(activeSkin);
@@ -45,7 +55,7 @@ public final class BitmapSkinManager {
                 spriteSizes.put(spriteId, new Size(DESKTOP_WORLD_WIDTH, DESKTOP_WORLD_HEIGHT));
                 continue;
             }
-            SpriteAsset asset = spriteMap == null ? null : spriteMap.get(spriteId);
+            SpriteAsset asset = getSpriteAsset(spriteId);
             if (asset == null) {
                 throw new IllegalStateException("Missing sprite asset for " + spriteId);
             }
@@ -69,8 +79,7 @@ public final class BitmapSkinManager {
         if (cached != null) {
             return cached;
         }
-        EnumMap<SpriteId, SpriteAsset> spriteMap = skinRegistry.get(activeSkin);
-        SpriteAsset asset = spriteMap == null ? null : spriteMap.get(spriteId);
+        SpriteAsset asset = getSpriteAsset(spriteId);
         Bitmap bitmap = createBitmap(asset, width, height);
         bitmapCache.put(cacheKey, bitmap);
         return bitmap;
@@ -90,7 +99,7 @@ public final class BitmapSkinManager {
             if (isBackground(spriteId)) {
                 continue;
             }
-            SpriteAsset asset = spriteMap.get(spriteId);
+            SpriteAsset asset = getSpriteAsset(spriteId);
             if (asset == null) {
                 continue;
             }
@@ -130,6 +139,28 @@ public final class BitmapSkinManager {
         registerSprite(classic, SpriteId.FIRE_SUPPLY, R.drawable.pc_prop_bullet);
         registerSprite(classic, SpriteId.SUPER_FIRE_SUPPLY, R.drawable.pc_prop_bullet_plus);
         skinRegistry.put(SkinId.CLASSIC, classic);
+    }
+
+    private SpriteAsset getSpriteAsset(SpriteId spriteId) {
+        if (spriteId == SpriteId.HERO) {
+            return resolveHeroAsset();
+        }
+        EnumMap<SpriteId, SpriteAsset> spriteMap = skinRegistry.get(activeSkin);
+        return spriteMap == null ? null : spriteMap.get(spriteId);
+    }
+
+    private SpriteAsset resolveHeroAsset() {
+        int resId = ShopItemVisuals.resolveHeroDrawableResId(equippedHeroSkinId);
+        SpriteAsset cached = heroAssetCache.get(resId);
+        if (cached != null) {
+            return cached;
+        }
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(appContext.getResources(), resId, options);
+        SpriteAsset asset = new SpriteAsset(resId, options.outWidth, options.outHeight);
+        heroAssetCache.put(resId, asset);
+        return asset;
     }
 
     private void registerSprite(EnumMap<SpriteId, SpriteAsset> spriteMap, SpriteId spriteId, int resId) {

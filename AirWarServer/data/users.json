@@ -14,7 +14,7 @@
   "username" : "ws_u2",
   "password" : "123456",
   "nickname" : "WS-P2",
-  "online" : true,
+  "online" : false,
   "highScore" : 0,
   "coins" : 0,
   "equippedSkinId" : 0,
@@ -30,5 +30,38 @@
   "coins" : 0,
   "equippedSkinId" : 0,
   "ownedSkins" : [ 0 ],
+  "friendIds" : [ ]
+}, {
+  "id" : 4,
+  "username" : "fe",
+  "password" : "fe",
+  "nickname" : "fe",
+  "online" : false,
+  "highScore" : 10,
+  "coins" : 0,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ ]
+}, {
+  "id" : 5,
+  "username" : "cd",
+  "password" : "cd",
+  "nickname" : "cd",
+  "online" : false,
+  "highScore" : 0,
+  "coins" : 0,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
+  "friendIds" : [ ]
+}, {
+  "id" : 6,
+  "username" : "tujialin",
+  "password" : "1111",
+  "nickname" : "tujialin",
+  "online" : true,
+  "highScore" : 1150,
+  "coins" : 657,
+  "equippedSkinId" : 1,
+  "ownedSkins" : [ 0, 1 ],
   "friendIds" : [ ]
 } ]
