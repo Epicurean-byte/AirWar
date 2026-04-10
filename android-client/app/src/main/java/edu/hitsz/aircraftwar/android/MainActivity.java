@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
+import edu.hitsz.aircraftwar.android.audio.AudioSettingsManager;
 import edu.hitsz.aircraftwar.android.network.HttpApiClient;
 import edu.hitsz.aircraftwar.android.network.LocalInventoryManager;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private final HttpApiClient apiClient = new HttpApiClient();
 
     private SessionManager sessionManager;
+    private AudioSettingsManager audioSettingsManager;
     private LocalInventoryManager localInventoryManager;
     private UserProfile currentUser;
     private WsGameClient wsGameClient;
@@ -55,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         // configureWindow();
 
         sessionManager = new SessionManager(this);
+        audioSettingsManager = new AudioSettingsManager(this);
         localInventoryManager = new LocalInventoryManager(this);
         currentUser = sessionManager.loadUserOrNull();
 
@@ -83,6 +86,16 @@ public class MainActivity extends AppCompatActivity {
 
     public LocalInventoryManager getLocalInventoryManager() {
         return localInventoryManager;
+    }
+
+    public boolean isAudioEnabled() {
+        return audioSettingsManager != null && audioSettingsManager.isAudioEnabled();
+    }
+
+    public void setAudioEnabled(boolean enabled) {
+        if (audioSettingsManager != null) {
+            audioSettingsManager.setAudioEnabled(enabled);
+        }
     }
 
     public void onUserAuthenticated(UserProfile user) {

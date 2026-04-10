@@ -51,5 +51,12 @@ drawable skin_classic_super_elite_enemy
 drawable skin_classic_super_fire_supply
 id fragment_container
 layout activity_main
+raw bgm
+raw bgm_boss
+raw bomb_explosion
+raw bullet
+raw bullet_hit
+raw game_over
+raw get_supply
 string app_name
 style Theme.AircraftWarAndroid
