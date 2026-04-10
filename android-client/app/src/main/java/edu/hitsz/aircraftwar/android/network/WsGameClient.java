@@ -10,7 +10,7 @@ import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
-public final class WsGameClient {
+public final class WsGameClient implements ServerConfigManager.ServerAddressChangeListener {
 
     public interface Listener {
         void onOpen();
@@ -23,21 +23,49 @@ public final class WsGameClient {
     }
 
     private final OkHttpClient client = new OkHttpClient();
+    private final ServerConfigManager configManager = ServerConfigManager.getInstance();
     private WebSocket ws;
     private long userId;
     private Listener listener;
 
+    public WsGameClient() {
+        // Register to listen for server address changes
+        configManager.addServerAddressChangeListener(this);
+    }
+
     public void connect(long userId, Listener listener) {
         this.userId = userId;
         this.listener = listener;
-        Request req = new Request.Builder().url(ServerConfig.WS_GAME_URL).build();
-        ws = client.newWebSocket(req, new InnerListener());
+        String wsUrl = configManager.getWsGameUrl();
+        Request req = new Request.Builder().url(wsUrl).build();
+        ws = client.newWebSocket(req, new InnerListener(wsUrl));
     }
 
     public void close() {
         if (ws != null) {
             ws.close(1000, "bye");
             ws = null;
+        }
+    }
+    
+    /**
+     * Cleanup method to unregister from server address change notifications.
+     * Should be called when this client is no longer needed.
+     */
+    public void cleanup() {
+        close();
+        configManager.removeServerAddressChangeListener(this);
+    }
+    
+    @Override
+    public void onServerAddressChanged() {
+        // Disconnect existing WebSocket connection when server address changes
+        // The client will need to reconnect manually with the new address
+        if (ws != null) {
+            close();
+            if (listener != null) {
+                listener.onError("Server address changed, connection closed");
+            }
         }
     }
 
@@ -60,6 +88,12 @@ public final class WsGameClient {
     }
 
     private final class InnerListener extends WebSocketListener {
+        private final String serverUrl;
+        
+        InnerListener(String serverUrl) {
+            this.serverUrl = serverUrl;
+        }
+        
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
             send("AUTH", 0, null);
@@ -92,7 +126,8 @@ public final class WsGameClient {
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, @Nullable Response response) {
             if (listener != null) {
-                listener.onError(t.getMessage() == null ? "WebSocket failed" : t.getMessage());
+                String errorMsg = buildConnectionErrorMessage(t);
+                listener.onError(errorMsg);
             }
         }
 
@@ -101,6 +136,26 @@ public final class WsGameClient {
             if (listener != null) {
                 listener.onClosed();
             }
+        }
+        
+        private String buildConnectionErrorMessage(Throwable t) {
+            String baseMsg = t.getMessage() != null ? t.getMessage() : "WebSocket connection failed";
+            
+            // Check for common connection issues
+            if (t instanceof java.net.SocketTimeoutException) {
+                return "Connection timeout to " + serverUrl + ". Please check if the server is running.";
+            } else if (t instanceof java.net.ConnectException) {
+                return "Cannot connect to " + serverUrl + ". Please verify the server address and network connection.";
+            } else if (t instanceof java.net.UnknownHostException) {
+                return "Unknown host: " + serverUrl + ". Please check the server IP address.";
+            } else if (baseMsg.toLowerCase().contains("timeout")) {
+                return "Connection timeout to " + serverUrl + ". Please check if the server is running.";
+            } else if (baseMsg.toLowerCase().contains("refused")) {
+                return "Connection refused by " + serverUrl + ". Please verify the server is running and the port is correct.";
+            }
+            
+            // Default error message with server address
+            return "Failed to connect to " + serverUrl + ": " + baseMsg;
         }
     }
 }

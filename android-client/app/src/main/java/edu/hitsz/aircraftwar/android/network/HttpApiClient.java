@@ -164,7 +164,7 @@ public final class HttpApiClient {
     }
 
     private JSONObject get(String path, Map<String, String> query) throws Exception {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(ServerConfig.HTTP_BASE_URL + path).newBuilder();
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(ServerConfigManager.getInstance().getHttpBaseUrl() + path).newBuilder();
         for (Map.Entry<String, String> entry : query.entrySet()) {
             urlBuilder.addQueryParameter(entry.getKey(), entry.getValue());
         }
@@ -177,7 +177,7 @@ public final class HttpApiClient {
     }
 
     private JSONObject post(String path, Map<String, String> query, JSONObject body) throws Exception {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(ServerConfig.HTTP_BASE_URL + path).newBuilder();
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(ServerConfigManager.getInstance().getHttpBaseUrl() + path).newBuilder();
         for (Map.Entry<String, String> entry : query.entrySet()) {
             urlBuilder.addQueryParameter(entry.getKey(), entry.getValue());
         }
@@ -189,20 +189,21 @@ public final class HttpApiClient {
     }
 
     private JSONObject executeAndExtractData(Request request) throws Exception {
+        String serverAddress = ServerConfigManager.getInstance().getHttpBaseUrl();
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IllegalStateException("HTTP " + response.code());
+                throw new IllegalStateException("HTTP " + response.code() + " from server " + serverAddress);
             }
             ResponseBody responseBody = response.body();
             if (responseBody == null) {
-                throw new IllegalStateException("Empty response");
+                throw new IllegalStateException("Empty response from server " + serverAddress);
             }
             String body = responseBody.string();
             JSONObject root = new JSONObject(body);
             int code = root.optInt("code", 500);
             String message = root.optString("message", "unknown error");
             if (code != 200) {
-                throw new IllegalStateException(message);
+                throw new IllegalStateException(message + " (server: " + serverAddress + ")");
             }
             Object data = root.opt("data");
             if (data instanceof JSONObject jsonObject) {
@@ -213,6 +214,14 @@ public final class HttpApiClient {
                 wrapper.put("items", jsonArray);
             }
             return wrapper;
+        } catch (java.net.UnknownHostException e) {
+            throw new Exception("Cannot connect to server " + serverAddress + ". Please check the IP address.", e);
+        } catch (java.net.ConnectException e) {
+            throw new Exception("Cannot connect to server " + serverAddress + ". Please check the IP address and network connection.", e);
+        } catch (java.net.SocketTimeoutException e) {
+            throw new Exception("Connection timeout to server " + serverAddress + ". Please check your network connection.", e);
+        } catch (java.io.IOException e) {
+            throw new Exception("Network error connecting to server " + serverAddress + ": " + e.getMessage(), e);
         }
     }
 

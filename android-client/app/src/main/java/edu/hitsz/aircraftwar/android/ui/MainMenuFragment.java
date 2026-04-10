@@ -98,6 +98,9 @@ public class MainMenuFragment extends Fragment {
         var roomsButton = UiUtils.createActionButton(requireContext(), "对战房间");
         roomsButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showRooms());
 
+        var settingsButton = UiUtils.createActionButton(requireContext(), "设置");
+        settingsButton.setOnClickListener(view -> ((MainActivity) requireActivity()).showSettings());
+
         var logoutButton = UiUtils.createActionButton(requireContext(), "退出登录");
         logoutButton.setOnClickListener(view -> ((MainActivity) requireActivity()).logoutAndBackToLogin());
 
@@ -111,6 +114,7 @@ public class MainMenuFragment extends Fragment {
         root.addView(warehouseButton);
         root.addView(leaderboardButton);
         root.addView(roomsButton);
+        root.addView(settingsButton);
         root.addView(logoutButton);
         return root;
     }

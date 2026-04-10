@@ -42,15 +42,21 @@ public class PvpGameFragment extends Fragment {
     private TextView statusView;
     private long myScore = 0L;
     private long myCoins = 0L;
+    private int currentEnemyCount = 0; // 跟踪当前敌机数量
 
+    // 优化：减少自动开火频率，并只在有敌机时发送
     private final Runnable autoFireTask = new Runnable() {
         @Override
         public void run() {
             if (!isAdded()) {
                 return;
             }
-            ((MainActivity) requireActivity()).sendWs("FIRE", roomId, null);
-            handler.postDelayed(this, 250L);
+            // 只在有敌机时才发送FIRE消息，减少网络负担
+            if (currentEnemyCount > 0) {
+                ((MainActivity) requireActivity()).sendWs("FIRE", roomId, null);
+            }
+            // 增加间隔到500ms，减少网络消息频率
+            handler.postDelayed(this, 500L);
         }
     };
 
@@ -178,7 +184,8 @@ public class PvpGameFragment extends Fragment {
                 activity.toast("WS已断开");
             }
         });
-        handler.postDelayed(autoFireTask, 250L);
+        // 优化：增加初始延迟，等待游戏状态稳定后再开始自动开火
+        handler.postDelayed(autoFireTask, 500L);
     }
 
     @Override
@@ -233,6 +240,9 @@ public class PvpGameFragment extends Fragment {
             e.hp = item.optInt("hp", 0);
             enemies.add(e);
         }
+
+        // 更新当前敌机数量，用于优化自动开火
+        currentEnemyCount = enemies.size();
 
         battleView.updateState(players, enemies);
         statusView.setText("房间#" + roomId + "  战绩 " + myScore + "  金币 " + myCoins + "  敌机 " + enemies.size());
