@@ -42,6 +42,13 @@ public class PvpBattleView extends View {
         public float y;
         public int hp;
     }
+    
+    public static final class BulletState {
+        public int id;
+        public long ownerId; // 发射子弹的玩家ID
+        public float x;
+        public float y;
+    }
 
     private static final float WORLD_WIDTH = 512f;
     private static final float WORLD_HEIGHT = 768f;
@@ -61,6 +68,7 @@ public class PvpBattleView extends View {
     private final Bitmap mobEnemyBitmap;
     private final Bitmap eliteEnemyBitmap;
     private final Bitmap bossEnemyBitmap;
+    private final Bitmap heroBulletBitmap;
 
     private long myUserId;
     private float myX = 256f;
@@ -72,9 +80,12 @@ public class PvpBattleView extends View {
     private float enemyPlayerX = -1f;
     private float enemyPlayerY = -1f;
     private int enemyPlayerHp = 0;
+    private Bitmap enemyPlayerBitmap; // 对手玩家的皮肤
 
     private final List<EnemyState> enemies = new ArrayList<>();
+    private final List<BulletState> bullets = new ArrayList<>();
     private InputListener inputListener;
+    private String gameMode = "COOP"; // 默认合作模式
 
     public PvpBattleView(Context context) {
         this(context, null);
@@ -88,6 +99,9 @@ public class PvpBattleView extends View {
         mobEnemyBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_mob);
         eliteEnemyBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_elite);
         bossEnemyBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_boss);
+        heroBulletBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.pc_bullet_hero);
+        
+        android.util.Log.d("PvpBattleView", "heroBulletBitmap is " + (heroBulletBitmap == null ? "NULL" : "loaded"));
 
         hudPanelPaint.setColor(0xA6171F14);
         hudStrokePaint.setColor(0xCCB99547);
@@ -113,6 +127,17 @@ public class PvpBattleView extends View {
         myPlaneBitmap = BitmapFactory.decodeResource(getResources(), resId);
         invalidate();
     }
+    
+    public void setEnemyPlayerSkinId(int skinId) {
+        int resId = ShopItemVisuals.resolveHeroDrawableResId(skinId);
+        enemyPlayerBitmap = BitmapFactory.decodeResource(getResources(), resId);
+        invalidate();
+    }
+    
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+        invalidate();
+    }
 
     public void setMyUserId(long myUserId) {
         this.myUserId = myUserId;
@@ -122,9 +147,12 @@ public class PvpBattleView extends View {
         this.inputListener = listener;
     }
 
-    public void updateState(List<PlayerState> players, List<EnemyState> enemies) {
+    public void updateState(List<PlayerState> players, List<EnemyState> enemies, List<BulletState> bullets) {
         this.enemies.clear();
         this.enemies.addAll(enemies);
+        
+        this.bullets.clear();
+        this.bullets.addAll(bullets);
 
         for (PlayerState p : players) {
             if (p.userId == myUserId) {
@@ -147,6 +175,7 @@ public class PvpBattleView extends View {
         super.onDraw(canvas);
         drawBackground(canvas);
         drawCombatLane(canvas);
+        drawBullets(canvas);
         drawEnemies(canvas);
         drawPlayers(canvas);
         drawHud(canvas);
@@ -191,6 +220,16 @@ public class PvpBattleView extends View {
             canvas.drawLine(width * 0.08f, y, width * 0.92f, y, scanlinePaint);
         }
     }
+    
+    private void drawBullets(Canvas canvas) {
+        android.util.Log.d("PvpBattleView", "Drawing " + bullets.size() + " bullets");
+        for (BulletState bullet : bullets) {
+            float screenX = worldToScreenX(bullet.x);
+            float screenY = worldToScreenY(bullet.y);
+            android.util.Log.d("PvpBattleView", "Bullet " + bullet.id + " world(" + bullet.x + ", " + bullet.y + ") screen(" + screenX + ", " + screenY + ")");
+            drawSprite(canvas, heroBulletBitmap, screenX, screenY, 12f, 24f);
+        }
+    }
 
     private void drawEnemies(Canvas canvas) {
         for (EnemyState enemy : enemies) {
@@ -217,7 +256,9 @@ public class PvpBattleView extends View {
     private void drawPlayers(Canvas canvas) {
         drawSprite(canvas, myPlaneBitmap, worldToScreenX(myX), worldToScreenY(myY), 76f, 76f);
         if (enemyPlayerX >= 0 && enemyPlayerY >= 0) {
-            drawSprite(canvas, enemyPlaneBitmap, worldToScreenX(enemyPlayerX), worldToScreenY(enemyPlayerY), 76f, 76f);
+            // 使用对手的实际皮肤，如果没有设置则使用默认
+            Bitmap playerBitmap = enemyPlayerBitmap != null ? enemyPlayerBitmap : enemyPlaneBitmap;
+            drawSprite(canvas, playerBitmap, worldToScreenX(enemyPlayerX), worldToScreenY(enemyPlayerY), 76f, 76f);
         }
     }
 
@@ -227,9 +268,15 @@ public class PvpBattleView extends View {
         canvas.drawRoundRect(tempRect, 24f, 24f, hudPanelPaint);
         canvas.drawRoundRect(tempRect, 24f, 24f, hudStrokePaint);
 
-        canvas.drawText("PVP DUEL", 40f, 54f, hudTitlePaint);
+        String modeText = "COOP".equals(gameMode) ? "合作模式" : "对战模式";
+        canvas.drawText(modeText, 40f, 54f, hudTitlePaint);
         canvas.drawText("MY HP " + myHp + "   SCORE " + myScore + "   COINS " + myCoins, 40f, 84f, hudBodyPaint);
-        canvas.drawText("ENEMY HP " + Math.max(0, enemyPlayerHp) + "   TARGETS " + enemies.size(), 40f, 110f, hudBodyPaint);
+        
+        if ("COOP".equals(gameMode)) {
+            canvas.drawText("队友 HP " + Math.max(0, enemyPlayerHp) + "   敌机 " + enemies.size(), 40f, 110f, hudBodyPaint);
+        } else {
+            canvas.drawText("对手 HP " + Math.max(0, enemyPlayerHp) + "   敌机 " + enemies.size(), 40f, 110f, hudBodyPaint);
+        }
 
         float radarTop = canvas.getHeight() - 96f;
         tempRect.set(20f, radarTop, canvas.getWidth() - 20f, canvas.getHeight() - 20f);

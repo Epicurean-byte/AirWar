@@ -59,8 +59,8 @@
   "password" : "dw",
   "nickname" : "cd",
   "online" : false,
-  "highScore" : 10,
-  "coins" : 0,
+  "highScore" : 1230,
+  "coins" : 363,
   "equippedSkinId" : 0,
   "ownedSkins" : [ 0 ],
   "friendIds" : [ ]
@@ -69,10 +69,21 @@
   "username" : "tujialin",
   "password" : "1111",
   "nickname" : "tujialin",
-  "online" : true,
+  "online" : false,
   "highScore" : 1150,
   "coins" : 657,
   "equippedSkinId" : 1,
   "ownedSkins" : [ 0, 1 ],
+  "friendIds" : [ ]
+}, {
+  "id" : 8,
+  "username" : "fef",
+  "password" : "4gwerg",
+  "nickname" : "gfwg",
+  "online" : true,
+  "highScore" : 760,
+  "coins" : 853,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
   "friendIds" : [ ]
 } ]

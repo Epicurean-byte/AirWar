@@ -28,6 +28,10 @@
         "source": "edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_hero_bullet.xml"
     },
     {
+        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/layout_item_discovered_server.xml.flat",
+        "source": "edu.hitsz.aircraftwar.android.app-main-33:/layout/item_discovered_server.xml"
+    },
+    {
         "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_01.png.flat",
         "source": "edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_01.png"
     },
@@ -118,6 +122,10 @@
     {
         "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_13.png.flat",
         "source": "edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_13.png"
+    },
+    {
+        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/layout_fragment_settings.xml.flat",
+        "source": "edu.hitsz.aircraftwar.android.app-main-33:/layout/fragment_settings.xml"
     },
     {
         "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_super_fire_supply.xml.flat",

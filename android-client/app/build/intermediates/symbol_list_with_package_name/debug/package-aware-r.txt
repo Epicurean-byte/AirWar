@@ -3142,6 +3142,9 @@ id beginning
 id blocking
 id bottom
 id bounce
+id btn_save
+id btn_scan_lan
+id btn_test_connection
 id buttonPanel
 id cancel_button
 id center
@@ -3203,6 +3206,8 @@ id easeInOut
 id easeOut
 id edge
 id edit_query
+id edit_server_ip
+id edit_server_port
 id edit_text_id
 id elastic
 id embed
@@ -3376,9 +3381,12 @@ id postLayout
 id pressed
 id progress_circular
 id progress_horizontal
+id progress_scan_lan
+id progress_test_connection
 id radio
 id ratio
 id rectangles
+id recycler_discovered_servers
 id report_drawn
 id reverseSawtooth
 id right
@@ -3463,9 +3471,13 @@ id textSpacerNoButtons
 id textSpacerNoTitle
 id textStart
 id textTop
+id text_connection_result
 id text_input_end_icon
 id text_input_error_icon
 id text_input_start_icon
+id text_scan_progress
+id text_server_ip
+id text_server_response_time
 id textinput_counter
 id textinput_error
 id textinput_helper_text
@@ -3639,8 +3651,10 @@ layout design_navigation_menu
 layout design_navigation_menu_item
 layout design_text_input_end_icon
 layout design_text_input_start_icon
+layout fragment_settings
 layout ime_base_split_test_activity
 layout ime_secondary_split_test_activity
+layout item_discovered_server
 layout m3_alert_dialog
 layout m3_alert_dialog_actions
 layout m3_alert_dialog_title
