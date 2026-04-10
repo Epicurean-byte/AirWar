@@ -1,11 +1,9 @@
 package edu.hitsz.aircraftwar.android.audio;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Build;
 
@@ -18,23 +16,21 @@ import edu.hitsz.game.core.event.GameEvent;
 
 public final class AndroidAudioPlayer {
     private static final float EFFECT_VOLUME = 0.85f;
-    private static final float BGM_VOLUME = 0.65f;
-
     private final Context appContext;
     private final AudioManager audioManager;
     private final AudioSettingsManager audioSettingsManager;
+    private final GlobalBgmManager globalBgmManager;
     private final SoundPool soundPool;
     private final EnumMap<GameEvent.Type, Integer> effectSoundIds = new EnumMap<>(GameEvent.Type.class);
     private final Set<Integer> loadedEffectIds = new HashSet<>();
     private final AudioAttributes gameAudioAttributes;
     private AudioFocusRequest audioFocusRequest;
-    private MediaPlayer stageBgmPlayer;
-    private MediaPlayer bossBgmPlayer;
 
     public AndroidAudioPlayer(Context context) {
         this.appContext = context.getApplicationContext();
         this.audioManager = (AudioManager) appContext.getSystemService(Context.AUDIO_SERVICE);
         this.audioSettingsManager = new AudioSettingsManager(appContext);
+        this.globalBgmManager = GlobalBgmManager.getInstance(appContext);
         this.gameAudioAttributes = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -59,19 +55,7 @@ public final class AndroidAudioPlayer {
     }
 
     public void bindStageMusic(Integer stageRawResId, Integer bossRawResId) {
-        releasePlayers();
-        if (stageRawResId != null) {
-            stageBgmPlayer = createLoopingPlayer(stageRawResId);
-            if (stageBgmPlayer != null) {
-                stageBgmPlayer.setVolume(BGM_VOLUME, BGM_VOLUME);
-            }
-        }
-        if (bossRawResId != null) {
-            bossBgmPlayer = createLoopingPlayer(bossRawResId);
-            if (bossBgmPlayer != null) {
-                bossBgmPlayer.setVolume(BGM_VOLUME, BGM_VOLUME);
-            }
-        }
+        // Background music is managed globally from app launch.
     }
 
     public void startStageBgm() {
@@ -79,10 +63,7 @@ public final class AndroidAudioPlayer {
             pauseAll();
             return;
         }
-        requestAudioFocus();
-        if (stageBgmPlayer != null && !stageBgmPlayer.isPlaying()) {
-            stageBgmPlayer.start();
-        }
+        globalBgmManager.startMainBgm();
     }
 
     public void playEvent(GameEvent event) {
@@ -90,26 +71,10 @@ public final class AndroidAudioPlayer {
             return;
         }
         switch (event.getType()) {
-            case BOSS_SPAWN -> {
-                pauseStageBgm();
-                if (bossBgmPlayer != null && !bossBgmPlayer.isPlaying()) {
-                    bossBgmPlayer.start();
-                }
-            }
-            case BOSS_DEFEATED -> {
-                if (bossBgmPlayer != null && bossBgmPlayer.isPlaying()) {
-                    bossBgmPlayer.pause();
-                    bossBgmPlayer.seekTo(0);
-                }
-                startStageBgm();
-                playEffect(event.getType());
-            }
+            case BOSS_SPAWN -> globalBgmManager.startBossBgm();
+            case BOSS_DEFEATED -> globalBgmManager.startMainBgm();
             case GAME_OVER -> {
-                pauseStageBgm();
-                if (bossBgmPlayer != null && bossBgmPlayer.isPlaying()) {
-                    bossBgmPlayer.pause();
-                    bossBgmPlayer.seekTo(0);
-                }
+                globalBgmManager.startMainBgm();
                 playEffect(event.getType());
             }
             default -> playEffect(event.getType());
@@ -117,16 +82,12 @@ public final class AndroidAudioPlayer {
     }
 
     public void pauseAll() {
-        pauseStageBgm();
-        if (bossBgmPlayer != null && bossBgmPlayer.isPlaying()) {
-            bossBgmPlayer.pause();
-        }
+        globalBgmManager.pause();
         abandonAudioFocus();
     }
 
     public void release() {
         soundPool.release();
-        releasePlayers();
         abandonAudioFocus();
     }
 
@@ -141,48 +102,12 @@ public final class AndroidAudioPlayer {
         }
     }
 
-    private void pauseStageBgm() {
-        if (stageBgmPlayer != null && stageBgmPlayer.isPlaying()) {
-            stageBgmPlayer.pause();
-        }
-    }
-
-    private void releasePlayers() {
-        if (stageBgmPlayer != null) {
-            stageBgmPlayer.release();
-            stageBgmPlayer = null;
-        }
-        if (bossBgmPlayer != null) {
-            bossBgmPlayer.release();
-            bossBgmPlayer = null;
-        }
-    }
-
     private void bindDefaultResources() {
-        bindStageMusic(R.raw.bgm, R.raw.bgm_boss);
         loadEffect(GameEvent.Type.SHOOT, R.raw.bullet);
         loadEffect(GameEvent.Type.BULLET_HIT, R.raw.bullet_hit);
         loadEffect(GameEvent.Type.BOMB_EXPLOSION, R.raw.bomb_explosion);
         loadEffect(GameEvent.Type.GET_SUPPLY, R.raw.get_supply);
         loadEffect(GameEvent.Type.GAME_OVER, R.raw.game_over);
-    }
-
-    private MediaPlayer createLoopingPlayer(int rawResId) {
-        try {
-            AssetFileDescriptor afd = appContext.getResources().openRawResourceFd(rawResId);
-            if (afd == null) {
-                return null;
-            }
-            MediaPlayer player = new MediaPlayer();
-            player.setAudioAttributes(gameAudioAttributes);
-            player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-            afd.close();
-            player.setLooping(true);
-            player.prepare();
-            return player;
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private void requestAudioFocus() {

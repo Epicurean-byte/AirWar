@@ -12,16 +12,20 @@
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_bg_normal.xml"
     },
     {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_get_supply.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/get_supply.wav"
-    },
-    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_enemy_bullet.xml.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_enemy_bullet.xml"
     },
     {
+        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/layout_item_discovered_server.xml.flat",
+        "source": "edu.hitsz.aircraftwar.android.app-main-33:/layout/item_discovered_server.xml"
+    },
+    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_blood_supply.xml.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_blood_supply.xml"
+    },
+    {
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bgm.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/bgm.wav"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_pc_bg_easy.jpg.flat",
@@ -52,14 +56,6 @@
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_bomb_supply.xml"
     },
     {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bomb_explosion.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/bomb_explosion.wav"
-    },
-    {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_game_over.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/game_over.wav"
-    },
-    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_16.png.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_16.png"
     },
@@ -76,24 +72,24 @@
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_boss_enemy.xml"
     },
     {
-        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_06.png.flat",
-        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_06.png"
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bgm_boss.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/bgm_boss.wav"
     },
     {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bullet_hit.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/bullet_hit.wav"
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_06.png.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_06.png"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_super_elite_enemy.xml.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_super_elite_enemy.xml"
     },
     {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bullet.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/bullet.wav"
-    },
-    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_12.png.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_12.png"
+    },
+    {
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bullet.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/bullet.wav"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_mob_enemy.xml.flat",
@@ -108,8 +104,16 @@
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_04.png"
     },
     {
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bomb_explosion.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/bomb_explosion.wav"
+    },
+    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_bg_easy.xml.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_bg_easy.xml"
+    },
+    {
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bullet_hit.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/bullet_hit.wav"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_hero_bullet.xml.flat",
@@ -118,6 +122,10 @@
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_15.png.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_15.png"
+    },
+    {
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_get_supply.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/get_supply.wav"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_pc_elite_plus.png.flat",
@@ -148,10 +156,6 @@
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_hero.xml"
     },
     {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bgm_boss.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/bgm_boss.wav"
-    },
-    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_05.png.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_05.png"
     },
@@ -164,8 +168,16 @@
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/pc_bg_hard.jpg"
     },
     {
+        "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_game_over.wav.flat",
+        "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/raw/game_over.wav"
+    },
+    {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable_skin_classic_elite_enemy.xml.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable/skin_classic_elite_enemy.xml"
+    },
+    {
+        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/layout_fragment_settings.xml.flat",
+        "source": "edu.hitsz.aircraftwar.android.app-main-33:/layout/fragment_settings.xml"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_pc_prop_blood.png.flat",
@@ -178,10 +190,6 @@
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_shop_item_01.png.flat",
         "source": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-main-33:/drawable-nodpi/shop_item_01.png"
-    },
-    {
-        "merged": "edu.hitsz.aircraftwar.android.app-merged_res-31:/raw_bgm.wav.flat",
-        "source": "edu.hitsz.aircraftwar.android.app-main-33:/raw/bgm.wav"
     },
     {
         "merged": "/Users/jialintu/.gradle/daemon/8.14/edu.hitsz.aircraftwar.android.app-merged_res-31:/drawable-nodpi_pc_prop_bullet.png.flat",

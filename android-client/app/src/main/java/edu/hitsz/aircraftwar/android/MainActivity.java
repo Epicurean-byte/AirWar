@@ -12,6 +12,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
 import edu.hitsz.aircraftwar.android.audio.AudioSettingsManager;
+import edu.hitsz.aircraftwar.android.audio.GlobalBgmManager;
 import edu.hitsz.aircraftwar.android.network.HttpApiClient;
 import edu.hitsz.aircraftwar.android.network.LocalInventoryManager;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
@@ -73,12 +74,24 @@ public class MainActivity extends AppCompatActivity {
                 showMainMenu();
             }
         }
+        if (isAudioEnabled()) {
+            GlobalBgmManager.getInstance(this).startMainBgm();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         hideSystemBars();
+        if (isAudioEnabled()) {
+            GlobalBgmManager.getInstance(this).resumeCurrentMode();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        GlobalBgmManager.getInstance(this).pause();
+        super.onPause();
     }
 
     public HttpApiClient getApiClient() {
@@ -100,6 +113,11 @@ public class MainActivity extends AppCompatActivity {
     public void setAudioEnabled(boolean enabled) {
         if (audioSettingsManager != null) {
             audioSettingsManager.setAudioEnabled(enabled);
+        }
+        if (enabled) {
+            GlobalBgmManager.getInstance(this).resumeCurrentMode();
+        } else {
+            GlobalBgmManager.getInstance(this).stopAll();
         }
     }
 
@@ -251,6 +269,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         disconnectGameWs();
+        GlobalBgmManager.getInstance(this).release();
         super.onDestroy();
     }
 
