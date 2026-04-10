@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.planewar.server.datastore.InMemoryDataStore;
 import com.planewar.server.model.dto.WsMessageDto;
+import com.planewar.server.model.entity.GameMode;
 import com.planewar.server.model.entity.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,8 +73,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         switch (dto.getType()) {
             case "AUTH" -> handleAuth(session, dto);
             case "MATCH_RANDOM" -> handleMatchRandom(session);
-            case "CREATE_ROOM" -> handleCreateRoom(session);
-            case "JOIN_ROOM" -> handleJoinRoom(session, dto.getRoomId());
+            case "CREATE_ROOM" -> handleCreateRoom(session, dto);
+            case "JOIN_ROOM" -> handleJoinRoom(session, dto.getRoomId(), dto);
             case "START_GAME" -> handleStartGame(session, dto.getRoomId());
             case "MOVE" -> handleMove(session, dto);
             case "FIRE" -> handleFire(session);
@@ -129,16 +130,30 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         broadcastToRoomAll(room.getId(), buildMsg("MATCH_SUCCESS", room.getId(), 0, payload));
     }
 
-    private void handleCreateRoom(WebSocketSession session) throws IOException {
+    private void handleCreateRoom(WebSocketSession session, WsMessageDto dto) throws IOException {
         long userId = requireAuth(session);
         if (userId < 0) return;
 
         Room room = matchManager.createRoom(userId);
+        
+        // 从消息中获取游戏模式和皮肤ID
+        JSONObject payload = safePayload(dto.getPayload());
+        String modeStr = payload.getString("gameMode");
+        if (modeStr != null && !modeStr.isBlank()) {
+            try {
+                room.setGameMode(GameMode.valueOf(modeStr));
+            } catch (IllegalArgumentException e) {
+                room.setGameMode(GameMode.COOP); // 默认合作模式
+            }
+        }
+        room.setPlayer1SkinId(payload.getIntValue("skinId", 0));
+        
         send(session, buildMsg("ROOM_CREATED", room.getId(), 0,
-                "{\"roomId\":" + room.getId() + ",\"hostId\":" + userId + "}"));
+                "{\"roomId\":" + room.getId() + ",\"hostId\":" + userId + 
+                ",\"gameMode\":\"" + room.getGameMode() + "\"}"));
     }
 
-    private void handleJoinRoom(WebSocketSession session, long roomId) throws IOException {
+    private void handleJoinRoom(WebSocketSession session, long roomId, WsMessageDto dto) throws IOException {
         long userId = requireAuth(session);
         if (userId < 0) return;
 
@@ -149,8 +164,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         Room room = roomOpt.get();
-        String payload = roomPayload(room);
-        broadcastToRoomAll(room.getId(), buildMsg("ROOM_JOINED", room.getId(), 0, payload));
+        
+        // 保存玩家2的皮肤ID
+        JSONObject payload = safePayload(dto.getPayload());
+        room.setPlayer2SkinId(payload.getIntValue("skinId", 0));
+        
+        String payloadStr = roomPayload(room);
+        broadcastToRoomAll(room.getId(), buildMsg("ROOM_JOINED", room.getId(), 0, payloadStr));
     }
 
     private void handleStartGame(WebSocketSession session, long roomId) throws IOException {
@@ -169,8 +189,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         String initPayload = String.format(
                 "{\"roomId\":%d,\"seed\":%d,\"player1Id\":%d,\"player2Id\":%d," +
+                        "\"gameMode\":\"%s\",\"player1SkinId\":%d,\"player2SkinId\":%d," +
                         "\"difficulty\":{\"enemyHpMultiplier\":1.5,\"spawnRate\":1.3,\"bulletDensity\":1.2}}",
-                room.getId(), room.getGameSeed(), room.getPlayer1Id(), room.getPlayer2Id());
+                room.getId(), room.getGameSeed(), room.getPlayer1Id(), room.getPlayer2Id(),
+                room.getGameMode(), room.getPlayer1SkinId(), room.getPlayer2SkinId());
         broadcastToRoomAll(room.getId(), buildMsg("GAME_START", room.getId(), 0, initPayload));
     }
 
@@ -188,7 +210,21 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         JSONObject payload = safePayload(dto.getPayload());
         float x = clamp((float) payload.getDoubleValue("x"), 0, WORLD_WIDTH);
-        float y = clamp((float) payload.getDoubleValue("y"), 0, WORLD_HEIGHT);
+        float y = (float) payload.getDoubleValue("y");
+        
+        // 根据游戏模式限制玩家移动区域
+        if (battle.gameMode == GameMode.PVP) {
+            // PVP模式：玩家1在上半场，玩家2在下半场
+            if (userId == battle.player1Id) {
+                y = clamp(y, 0, WORLD_HEIGHT / 2 - 20); // 上半场
+            } else {
+                y = clamp(y, WORLD_HEIGHT / 2 + 20, WORLD_HEIGHT); // 下半场
+            }
+        } else {
+            // COOP模式：玩家可以在整个屏幕移动
+            y = clamp(y, 0, WORLD_HEIGHT);
+        }
+        
         player.x = x;
         player.y = y;
     }
@@ -206,33 +242,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             PlayerState player = battle.players.get(userId);
             if (player == null || player.hp <= 0) return;
 
-            // 如果没有敌机，直接返回
-            if (battle.enemies.isEmpty()) return;
-
-            EnemyState target = null;
-            double bestDist = Double.MAX_VALUE;
-            for (EnemyState enemy : battle.enemies.values()) {
-                double dx = enemy.x - player.x;
-                double dy = enemy.y - player.y;
-                // 修复：只攻击在玩家上方的敌机（敌机y坐标小于玩家y坐标）
-                // 在游戏坐标系中，y轴向下增长，敌机从上往下移动
-                if (enemy.y > player.y) continue;
-                double d2 = dx * dx + dy * dy;
-                if (d2 < bestDist) {
-                    bestDist = d2;
-                    target = enemy;
-                }
-            }
-            if (target == null) return;
-
-            target.hp -= 40;
-            if (target.hp <= 0) {
-                battle.enemies.remove(target.id);
-                long gainedScore = target.scoreValue;
-                long gainedCoins = 5 + battle.random.nextInt(16);
-                player.score += gainedScore;
-                player.coins += gainedCoins;
-            }
+            // 创建子弹
+            int bulletId = battle.nextBulletId++;
+            float bulletX = player.x;
+            float bulletY = player.y - 30; // 从飞机前方发射
+            float bulletSpeed = -10f; // 向上飞行（y减小）
+            
+            battle.bullets.put(bulletId, new BulletState(bulletId, userId, bulletX, bulletY, bulletSpeed));
+            log.debug("User {} fired bullet {} at ({}, {}) in room {}", userId, bulletId, bulletX, bulletY, roomId);
         }
     }
 
@@ -271,6 +288,45 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         if (distance(enemy.x, enemy.y, player.x, player.y) < collisionRadius) {
                             player.hp -= 15; // 增加碰撞伤害，使游戏更有挑战性
                             it.remove();
+                            break;
+                        }
+                    }
+                }
+                
+                // 更新子弹位置并检测碰撞
+                Iterator<BulletState> bulletIt = battle.bullets.values().iterator();
+                while (bulletIt.hasNext()) {
+                    BulletState bullet = bulletIt.next();
+                    bullet.y += bullet.speedY;
+                    
+                    // 子弹飞出屏幕，移除
+                    if (bullet.y < -40 || bullet.y > WORLD_HEIGHT + 40) {
+                        bulletIt.remove();
+                        continue;
+                    }
+                    
+                    // 检测子弹与敌机的碰撞
+                    boolean hit = false;
+                    for (EnemyState enemy : battle.enemies.values()) {
+                        if (distance(bullet.x, bullet.y, enemy.x, enemy.y) < 25.0) {
+                            // 子弹击中敌机
+                            enemy.hp -= 40;
+                            bulletIt.remove();
+                            hit = true;
+                            
+                            if (enemy.hp <= 0) {
+                                battle.enemies.remove(enemy.id);
+                                // 给发射子弹的玩家加分
+                                PlayerState shooter = battle.players.get(bullet.ownerId);
+                                if (shooter != null) {
+                                    long gainedScore = enemy.scoreValue;
+                                    long gainedCoins = 5 + battle.random.nextInt(16);
+                                    shooter.score += gainedScore;
+                                    shooter.coins += gainedCoins;
+                                    log.debug("Enemy {} destroyed by bullet from user {} in room {}", 
+                                        enemy.id, bullet.ownerId, battle.roomId);
+                                }
+                            }
                             break;
                         }
                     }
@@ -314,6 +370,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             default -> 50;
         };
         battle.enemies.put(id, new EnemyState(id, type, x, y, hp, speed, scoreValue));
+        log.debug("Spawned enemy {} at ({}, {}) in room {}, mode: {}", id, x, y, battle.roomId, battle.gameMode);
     }
 
     private void broadcastBattleState(BattleRoomState battle) {
@@ -345,6 +402,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             enemies.add(item);
         }
         payload.put("enemies", enemies);
+        
+        // 添加子弹状态
+        JSONArray bullets = new JSONArray();
+        for (BulletState b : battle.bullets.values()) {
+            JSONObject item = new JSONObject();
+            item.put("id", b.id);
+            item.put("ownerId", b.ownerId);
+            item.put("x", b.x);
+            item.put("y", b.y);
+            bullets.add(item);
+        }
+        payload.put("bullets", bullets);
+        
+        if (battle.tickCount % 20 == 0) {
+            log.debug("Room {} broadcasting: {} enemies, {} bullets", battle.roomId, enemies.size(), bullets.size());
+        }
 
         broadcastToRoomAll(battle.roomId, buildMsg("BATTLE_STATE", battle.roomId, 0, payload.toJSONString()));
     }
@@ -448,8 +521,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private String roomPayload(Room room) {
-        return String.format("{\"roomId\":%d,\"player1Id\":%d,\"player2Id\":%d,\"state\":\"%s\"}",
-                room.getId(), room.getPlayer1Id(), room.getPlayer2Id(), room.getState());
+        return String.format("{\"roomId\":%d,\"player1Id\":%d,\"player2Id\":%d,\"state\":\"%s\",\"gameMode\":\"%s\"}",
+                room.getId(), room.getPlayer1Id(), room.getPlayer2Id(), room.getState(), room.getGameMode());
     }
 
     private static float clamp(float v, float min, float max) {
@@ -464,19 +537,35 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
     private static final class BattleRoomState {
         private final long roomId;
+        private final long player1Id;
+        private final long player2Id;
+        private final GameMode gameMode;
         private final ConcurrentHashMap<Long, PlayerState> players = new ConcurrentHashMap<>();
         private final ConcurrentHashMap<Integer, EnemyState> enemies = new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<Integer, BulletState> bullets = new ConcurrentHashMap<>();
         private final Random random;
         private volatile boolean finished = false;
         private int tickCount = 0;
         private int nextEnemyId = 1;
+        private int nextBulletId = 1;
 
         private BattleRoomState(Room room) {
             this.roomId = room.getId();
+            this.player1Id = room.getPlayer1Id();
+            this.player2Id = room.getPlayer2Id();
+            this.gameMode = room.getGameMode();
             this.random = new Random(room.getGameSeed());
 
-            players.put(room.getPlayer1Id(), new PlayerState(room.getPlayer1Id(), 180, 660));
-            players.put(room.getPlayer2Id(), new PlayerState(room.getPlayer2Id(), 330, 660));
+            // 根据游戏模式设置玩家初始位置
+            if (gameMode == GameMode.PVP) {
+                // PVP模式：玩家1在上方，玩家2在下方，相向而行
+                players.put(room.getPlayer1Id(), new PlayerState(room.getPlayer1Id(), 256, 100));
+                players.put(room.getPlayer2Id(), new PlayerState(room.getPlayer2Id(), 256, 660));
+            } else {
+                // COOP模式：两个玩家并排在下方
+                players.put(room.getPlayer1Id(), new PlayerState(room.getPlayer1Id(), 180, 660));
+                players.put(room.getPlayer2Id(), new PlayerState(room.getPlayer2Id(), 330, 660));
+            }
         }
     }
 
@@ -512,6 +601,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             this.hp = hp;
             this.speedY = speedY;
             this.scoreValue = scoreValue;
+        }
+    }
+    
+    private static final class BulletState {
+        private final int id;
+        private final long ownerId; // 发射子弹的玩家ID
+        private float x;
+        private float y;
+        private final float speedY;
+        
+        private BulletState(int id, long ownerId, float x, float y, float speedY) {
+            this.id = id;
+            this.ownerId = ownerId;
+            this.x = x;
+            this.y = y;
+            this.speedY = speedY;
         }
     }
 }

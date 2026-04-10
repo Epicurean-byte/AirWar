@@ -30,6 +30,11 @@ import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
 public class PvpGameFragment extends Fragment {
     private static final String ARG_ROOM_ID = "room_id";
     private static final String ARG_SEED = "seed";
+    private static final String ARG_GAME_MODE = "game_mode";
+    private static final String ARG_PLAYER1_SKIN = "player1_skin";
+    private static final String ARG_PLAYER2_SKIN = "player2_skin";
+    private static final String ARG_PLAYER1_ID = "player1_id";
+    private static final String ARG_PLAYER2_ID = "player2_id";
 
     private final AtomicBoolean settled = new AtomicBoolean(false);
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -37,6 +42,11 @@ public class PvpGameFragment extends Fragment {
     private long roomId;
     private long seed;
     private long myUserId;
+    private String gameMode = "COOP";
+    private long player1Id;
+    private long player2Id;
+    private int player1SkinId;
+    private int player2SkinId;
 
     private PvpBattleView battleView;
     private TextView statusView;
@@ -60,10 +70,17 @@ public class PvpGameFragment extends Fragment {
         }
     };
 
-    public static PvpGameFragment newInstance(long roomId, long seed) {
+    public static PvpGameFragment newInstance(long roomId, long seed, String gameMode, 
+                                              long player1Id, long player2Id, 
+                                              int player1SkinId, int player2SkinId) {
         Bundle args = new Bundle();
         args.putLong(ARG_ROOM_ID, roomId);
         args.putLong(ARG_SEED, seed);
+        args.putString(ARG_GAME_MODE, gameMode);
+        args.putLong(ARG_PLAYER1_ID, player1Id);
+        args.putLong(ARG_PLAYER2_ID, player2Id);
+        args.putInt(ARG_PLAYER1_SKIN, player1SkinId);
+        args.putInt(ARG_PLAYER2_SKIN, player2SkinId);
         PvpGameFragment fragment = new PvpGameFragment();
         fragment.setArguments(args);
         return fragment;
@@ -76,15 +93,26 @@ public class PvpGameFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         roomId = getArguments() == null ? 0L : getArguments().getLong(ARG_ROOM_ID, 0L);
         seed = getArguments() == null ? 0L : getArguments().getLong(ARG_SEED, 0L);
+        gameMode = getArguments() == null ? "COOP" : getArguments().getString(ARG_GAME_MODE, "COOP");
+        player1Id = getArguments() == null ? 0L : getArguments().getLong(ARG_PLAYER1_ID, 0L);
+        player2Id = getArguments() == null ? 0L : getArguments().getLong(ARG_PLAYER2_ID, 0L);
+        player1SkinId = getArguments() == null ? 0 : getArguments().getInt(ARG_PLAYER1_SKIN, 0);
+        player2SkinId = getArguments() == null ? 0 : getArguments().getInt(ARG_PLAYER2_SKIN, 0);
 
         MainActivity activity = (MainActivity) requireActivity();
         myUserId = activity.getCurrentUser() == null ? 0L : activity.getCurrentUser().getUserId();
-        int equippedSkinId = activity.getCurrentUser() == null ? 0 : activity.getCurrentUser().getEquippedSkinId();
+        int myEquippedSkinId = activity.getCurrentUser() == null ? 0 : activity.getCurrentUser().getEquippedSkinId();
 
         FrameLayout root = new FrameLayout(requireContext());
         battleView = new PvpBattleView(requireContext());
         battleView.setMyUserId(myUserId);
-        battleView.setMyPlaneSkinId(equippedSkinId);
+        battleView.setMyPlaneSkinId(myEquippedSkinId);
+        battleView.setGameMode(gameMode);
+        
+        // 设置对手的皮肤
+        int enemySkinId = (myUserId == player1Id) ? player2SkinId : player1SkinId;
+        battleView.setEnemyPlayerSkinId(enemySkinId);
+        
         battleView.setInputListener(new PvpBattleView.InputListener() {
             @Override
             public void onMove(float x, float y) {
@@ -111,8 +139,9 @@ public class PvpGameFragment extends Fragment {
 
         LinearLayout topPanel = UiUtils.createPanel(requireContext(), 12);
         topPanel.setOrientation(LinearLayout.VERTICAL);
-        topPanel.addView(UiUtils.createSectionTitle(requireContext(), "联机空域"));
-        statusView = UiUtils.createCaption(requireContext(), "PVP房间#" + roomId + " seed=" + seed + " 连接中...");
+        String modeText = "COOP".equals(gameMode) ? "合作空域" : "对战空域";
+        topPanel.addView(UiUtils.createSectionTitle(requireContext(), modeText));
+        statusView = UiUtils.createCaption(requireContext(), "房间#" + roomId + " seed=" + seed + " 连接中...");
         UiUtils.setTopMargin(statusView, requireContext(), 6);
         topPanel.addView(statusView);
         FrameLayout.LayoutParams statusParams = new FrameLayout.LayoutParams(
@@ -240,11 +269,31 @@ public class PvpGameFragment extends Fragment {
             e.hp = item.optInt("hp", 0);
             enemies.add(e);
         }
+        
+        // 解析子弹状态
+        List<PvpBattleView.BulletState> bullets = new ArrayList<>();
+        JSONArray bulletsJson = payload.optJSONArray("bullets");
+        if (bulletsJson != null) {
+            android.util.Log.d("PvpGameFragment", "Received " + bulletsJson.length() + " bullets from server");
+            for (int i = 0; i < bulletsJson.length(); i++) {
+                JSONObject item = bulletsJson.optJSONObject(i);
+                if (item == null) continue;
+                PvpBattleView.BulletState b = new PvpBattleView.BulletState();
+                b.id = item.optInt("id", 0);
+                b.ownerId = item.optLong("ownerId", 0L);
+                b.x = (float) item.optDouble("x", 0.0);
+                b.y = (float) item.optDouble("y", 0.0);
+                bullets.add(b);
+                android.util.Log.d("PvpGameFragment", "Bullet " + b.id + " at (" + b.x + ", " + b.y + ") owner=" + b.ownerId);
+            }
+        } else {
+            android.util.Log.d("PvpGameFragment", "No bullets array in payload");
+        }
 
         // 更新当前敌机数量，用于优化自动开火
         currentEnemyCount = enemies.size();
 
-        battleView.updateState(players, enemies);
+        battleView.updateState(players, enemies, bullets);
         statusView.setText("房间#" + roomId + "  战绩 " + myScore + "  金币 " + myCoins + "  敌机 " + enemies.size());
     }
 

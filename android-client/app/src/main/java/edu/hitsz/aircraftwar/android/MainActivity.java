@@ -197,8 +197,8 @@ public class MainActivity extends AppCompatActivity {
         replaceFragment(GameFragment.newInstance(difficulty, playerName, userId), true);
     }
 
-    public void showPvpGame(long roomId, long seed) {
-        replaceFragment(PvpGameFragment.newInstance(roomId, seed), true);
+    public void showPvpGame(long roomId, long seed, String gameMode, long player1Id, long player2Id, int player1SkinId, int player2SkinId) {
+        replaceFragment(PvpGameFragment.newInstance(roomId, seed, gameMode, player1Id, player2Id, player1SkinId, player2SkinId), true);
     }
 
     public void setWsListener(@Nullable GameWsListener listener) {

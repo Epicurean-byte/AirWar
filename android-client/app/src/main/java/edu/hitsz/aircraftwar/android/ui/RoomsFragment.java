@@ -20,6 +20,7 @@ import edu.hitsz.aircraftwar.android.MainActivity;
 public class RoomsFragment extends Fragment {
     private LinearLayout logContainer;
     private long roomId = 0L;
+    private String gameMode = "COOP"; // 默认合作模式
 
     @Nullable
     @Override
@@ -47,8 +48,61 @@ public class RoomsFragment extends Fragment {
         random.setOnClickListener(v -> send("MATCH_RANDOM", 0L, null));
         root.addView(random);
 
+        // 游戏模式选择
+        var modePanel = UiUtils.createPanel(requireContext(), 8);
+        modePanel.setOrientation(LinearLayout.HORIZONTAL);
+        var modeLabel = UiUtils.createCaption(requireContext(), "游戏模式:");
+        modePanel.addView(modeLabel);
+        
+        var modeCoop = UiUtils.createActionButton(requireContext(), "合作");
+        var modePvp = UiUtils.createActionButton(requireContext(), "对战");
+        
+        // 设置初始状态 - 合作模式选中
+        modeCoop.setBackgroundColor(0xFF4CAF50); // 绿色背景表示选中
+        modeCoop.setTextColor(0xFFFFFFFF); // 白色文字
+        modePvp.setBackgroundColor(0xFFCCCCCC); // 灰色背景表示未选中
+        modePvp.setTextColor(0xFF666666); // 深灰色文字
+        
+        modeCoop.setOnClickListener(v -> {
+            if (!"COOP".equals(gameMode)) {
+                gameMode = "COOP";
+                // 更新按钮样式
+                modeCoop.setBackgroundColor(0xFF4CAF50); // 绿色 - 选中
+                modeCoop.setTextColor(0xFFFFFFFF);
+                modePvp.setBackgroundColor(0xFFCCCCCC); // 灰色 - 未选中
+                modePvp.setTextColor(0xFF666666);
+                ((MainActivity) requireActivity()).toast("已选择合作模式");
+            }
+        });
+        modePanel.addView(modeCoop);
+        
+        modePvp.setOnClickListener(v -> {
+            if (!"PVP".equals(gameMode)) {
+                gameMode = "PVP";
+                // 更新按钮样式
+                modePvp.setBackgroundColor(0xFFFF5722); // 橙红色 - 选中
+                modePvp.setTextColor(0xFFFFFFFF);
+                modeCoop.setBackgroundColor(0xFFCCCCCC); // 灰色 - 未选中
+                modeCoop.setTextColor(0xFF666666);
+                ((MainActivity) requireActivity()).toast("已选择对战模式");
+            }
+        });
+        modePanel.addView(modePvp);
+        root.addView(modePanel);
+
         var create = UiUtils.createActionButton(requireContext(), "创建房间");
-        create.setOnClickListener(v -> send("CREATE_ROOM", 0L, null));
+        create.setOnClickListener(v -> {
+            try {
+                JSONObject payload = new JSONObject();
+                payload.put("gameMode", gameMode);
+                MainActivity activity = (MainActivity) requireActivity();
+                int skinId = activity.getCurrentUser() == null ? 0 : activity.getCurrentUser().getEquippedSkinId();
+                payload.put("skinId", skinId);
+                send("CREATE_ROOM", 0L, payload);
+            } catch (Exception e) {
+                send("CREATE_ROOM", 0L, null);
+            }
+        });
         root.addView(create);
 
         var join = UiUtils.createActionButton(requireContext(), "加入房间");
@@ -58,7 +112,15 @@ public class RoomsFragment extends Fragment {
                 ((MainActivity) requireActivity()).toast("请输入有效房间ID");
                 return;
             }
-            send("JOIN_ROOM", targetRoomId, null);
+            try {
+                JSONObject payload = new JSONObject();
+                MainActivity activity = (MainActivity) requireActivity();
+                int skinId = activity.getCurrentUser() == null ? 0 : activity.getCurrentUser().getEquippedSkinId();
+                payload.put("skinId", skinId);
+                send("JOIN_ROOM", targetRoomId, payload);
+            } catch (Exception e) {
+                send("JOIN_ROOM", targetRoomId, null);
+            }
         });
         root.addView(join);
 
@@ -107,12 +169,23 @@ public class RoomsFragment extends Fragment {
                 if ("GAME_START".equals(type)) {
                     long startRoomId = roomIdFromMsg;
                     long seed = 0L;
+                    String gameMode = "COOP";
+                    long player1Id = 0L;
+                    long player2Id = 0L;
+                    int player1SkinId = 0;
+                    int player2SkinId = 0;
+                    
                     if (payload != null) {
                         startRoomId = payload.optLong("roomId", roomIdFromMsg);
                         seed = payload.optLong("seed", 0L);
+                        gameMode = payload.optString("gameMode", "COOP");
+                        player1Id = payload.optLong("player1Id", 0L);
+                        player2Id = payload.optLong("player2Id", 0L);
+                        player1SkinId = payload.optInt("player1SkinId", 0);
+                        player2SkinId = payload.optInt("player2SkinId", 0);
                     }
                     if (startRoomId > 0) {
-                        activity.showPvpGame(startRoomId, seed);
+                        activity.showPvpGame(startRoomId, seed, gameMode, player1Id, player2Id, player1SkinId, player2SkinId);
                     }
                 }
             }

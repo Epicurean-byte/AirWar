@@ -14,6 +14,12 @@ public class Room {
     private State state;
     /** 随机种子，开始游戏时由服务端生成并下发 */
     private long gameSeed;
+    /** 游戏模式：PVP对战或COOP合作 */
+    private GameMode gameMode = GameMode.COOP; // 默认合作模式
+    /** 玩家1的皮肤ID */
+    private int player1SkinId = 0;
+    /** 玩家2的皮肤ID */
+    private int player2SkinId = 0;
 
     public Room() {
     }
@@ -66,5 +72,29 @@ public class Room {
 
     public void setGameSeed(long gameSeed) {
         this.gameSeed = gameSeed;
+    }
+
+    public GameMode getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(GameMode gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public int getPlayer1SkinId() {
+        return player1SkinId;
+    }
+
+    public void setPlayer1SkinId(int player1SkinId) {
+        this.player1SkinId = player1SkinId;
+    }
+
+    public int getPlayer2SkinId() {
+        return player2SkinId;
+    }
+
+    public void setPlayer2SkinId(int player2SkinId) {
+        this.player2SkinId = player2SkinId;
     }
 }
