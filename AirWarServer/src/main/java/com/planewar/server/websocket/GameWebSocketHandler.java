@@ -206,12 +206,17 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             PlayerState player = battle.players.get(userId);
             if (player == null || player.hp <= 0) return;
 
+            // 如果没有敌机，直接返回
+            if (battle.enemies.isEmpty()) return;
+
             EnemyState target = null;
             double bestDist = Double.MAX_VALUE;
             for (EnemyState enemy : battle.enemies.values()) {
                 double dx = enemy.x - player.x;
                 double dy = enemy.y - player.y;
-                if (dy > 0) continue;
+                // 修复：只攻击在玩家上方的敌机（敌机y坐标小于玩家y坐标）
+                // 在游戏坐标系中，y轴向下增长，敌机从上往下移动
+                if (enemy.y > player.y) continue;
                 double d2 = dx * dx + dy * dy;
                 if (d2 < bestDist) {
                     bestDist = d2;
@@ -258,10 +263,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         continue;
                     }
 
+                    // 碰撞检测：根据飞机和敌机的实际大小调整碰撞半径
+                    // 玩家飞机约76像素，敌机约52-88像素，使用更精确的碰撞半径
                     for (PlayerState player : battle.players.values()) {
                         if (player.hp <= 0) continue;
-                        if (distance(enemy.x, enemy.y, player.x, player.y) < 28.0) {
-                            player.hp -= 12;
+                        double collisionRadius = 35.0; // 调整碰撞半径为更合理的值
+                        if (distance(enemy.x, enemy.y, player.x, player.y) < collisionRadius) {
+                            player.hp -= 15; // 增加碰撞伤害，使游戏更有挑战性
                             it.remove();
                             break;
                         }
