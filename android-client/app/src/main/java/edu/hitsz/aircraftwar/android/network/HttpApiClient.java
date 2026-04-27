@@ -51,6 +51,12 @@ public final class HttpApiClient {
         post("/api/user/logout", query, new JSONObject());
     }
 
+    public UserProfile getUserInfo(long userId) throws Exception {
+        Map<String, String> query = new HashMap<>();
+        query.put("userId", String.valueOf(userId));
+        return parseUserProfile(get("/api/user/info", query));
+    }
+
     public List<UserProfile> searchUsers(String keyword) throws Exception {
         Map<String, String> query = new HashMap<>();
         query.put("keyword", keyword);

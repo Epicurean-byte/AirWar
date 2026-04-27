@@ -10,8 +10,6 @@ public final class SessionManager {
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_USERNAME = "username";
     private static final String KEY_NICKNAME = "nickname";
-    private static final String KEY_COINS = "coins";
-    private static final String KEY_EQUIPPED_SKIN_ID = "equipped_skin_id";
 
     private final SharedPreferences prefs;
 
@@ -24,8 +22,6 @@ public final class SessionManager {
                 .putLong(KEY_USER_ID, user.getUserId())
                 .putString(KEY_USERNAME, user.getUsername())
                 .putString(KEY_NICKNAME, user.getNickname())
-                .putLong(KEY_COINS, user.getCoins())
-                .putInt(KEY_EQUIPPED_SKIN_ID, user.getEquippedSkinId())
                 .apply();
     }
 
@@ -36,9 +32,7 @@ public final class SessionManager {
         }
         String username = prefs.getString(KEY_USERNAME, "");
         String nickname = prefs.getString(KEY_NICKNAME, "Player");
-        long coins = prefs.getLong(KEY_COINS, 0L);
-        int equippedSkinId = prefs.getInt(KEY_EQUIPPED_SKIN_ID, 0);
-        return new UserProfile(userId, username, nickname, false, 0L, coins, equippedSkinId);
+        return new UserProfile(userId, username, nickname, false, 0L, 0L, 0);
     }
 
     public void clear() {

@@ -12,7 +12,6 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
 import edu.hitsz.aircraftwar.android.network.HttpApiClient;
-import edu.hitsz.aircraftwar.android.network.LocalInventoryManager;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
 import edu.hitsz.aircraftwar.android.network.ServerConfigManager;
 import edu.hitsz.aircraftwar.android.network.SessionManager;
@@ -45,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private final HttpApiClient apiClient = new HttpApiClient();
 
     private SessionManager sessionManager;
-    private LocalInventoryManager localInventoryManager;
     private UserProfile currentUser;
     private WsGameClient wsGameClient;
     private GameWsListener wsListener;
@@ -60,13 +58,13 @@ public class MainActivity extends AppCompatActivity {
         ServerConfigManager.getInstance().initialize(this);
 
         sessionManager = new SessionManager(this);
-        localInventoryManager = new LocalInventoryManager(this);
         currentUser = sessionManager.loadUserOrNull();
 
         if (savedInstanceState == null) {
             if (currentUser == null) {
                 showLogin();
             } else {
+                refreshCurrentUserFromServer();
                 showMainMenu();
             }
         }
@@ -86,10 +84,6 @@ public class MainActivity extends AppCompatActivity {
         return currentUser;
     }
 
-    public LocalInventoryManager getLocalInventoryManager() {
-        return localInventoryManager;
-    }
-
     public void onUserAuthenticated(UserProfile user) {
         currentUser = user;
         sessionManager.saveUser(user);
@@ -101,11 +95,31 @@ public class MainActivity extends AppCompatActivity {
         sessionManager.saveUser(user);
     }
 
-    public void updateCoinsAndEquippedSkin(long coins, int equippedSkinId) {
+    public void applyServerShopState(long coins, int equippedSkinId) {
         if (currentUser == null) {
             return;
         }
         updateCurrentUser(currentUser.withCoinsAndEquippedSkin(coins, equippedSkinId));
+    }
+
+    private void refreshCurrentUserFromServer() {
+        UserProfile cachedUser = currentUser;
+        if (cachedUser == null) {
+            return;
+        }
+        long userId = cachedUser.getUserId();
+        NetworkExecutor.run(() -> {
+            try {
+                UserProfile remoteUser = apiClient.getUserInfo(userId);
+                runOnUiThread(() -> {
+                    if (currentUser != null && currentUser.getUserId() == userId) {
+                        updateCurrentUser(remoteUser);
+                    }
+                });
+            } catch (Exception ignored) {
+                // Session identity remains usable; authoritative state is refreshed on the next API call.
+            }
+        });
     }
 
     public void logoutAndBackToLogin() {

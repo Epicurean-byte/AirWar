@@ -18,14 +18,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import java.util.Comparator;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import edu.hitsz.aircraftwar.android.MainActivity;
-import edu.hitsz.aircraftwar.android.network.LocalInventoryManager;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
-import edu.hitsz.aircraftwar.android.network.model.LocalInventorySnapshot;
-import edu.hitsz.aircraftwar.android.network.model.ShopCatalog;
 import edu.hitsz.aircraftwar.android.network.model.ShopInfo;
 import edu.hitsz.aircraftwar.android.network.model.ShopSkin;
 
@@ -99,28 +94,16 @@ public class ShopFragment extends Fragment {
         long userId = activity.getCurrentUser().getUserId();
         NetworkExecutor.run(() -> {
             try {
-                ShopInfo remote = activity.getApiClient().getShopInfo(userId);
-                ShopInfo merged = mergeWithLocal(activity, userId, remote);
-                activity.runOnUiThread(() -> render(merged));
+                ShopInfo info = activity.getApiClient().getShopInfo(userId);
+                activity.runOnUiThread(() -> render(info));
             } catch (Exception e) {
                 activity.toast(msg(e));
             }
         });
     }
 
-    private ShopInfo mergeWithLocal(MainActivity activity, long userId, ShopInfo remote) {
-        LocalInventoryManager inventoryManager = activity.getLocalInventoryManager();
-        Set<Integer> remoteOwned = remote.getSkins().stream()
-                .filter(ShopSkin::isOwned)
-                .map(ShopSkin::getSkinId)
-                .collect(Collectors.toSet());
-        inventoryManager.ensureInitialized(userId, remote.getCoins(), remote.getEquippedSkinId(), remoteOwned);
-        LocalInventorySnapshot snapshot = inventoryManager.snapshot(userId);
-        return ShopCatalog.merge(remote, snapshot);
-    }
-
     private void render(ShopInfo info) {
-        ((MainActivity) requireActivity()).updateCoinsAndEquippedSkin(info.getCoins(), info.getEquippedSkinId());
+        ((MainActivity) requireActivity()).applyServerShopState(info.getCoins(), info.getEquippedSkinId());
         walletView.setText("金币储备: " + info.getCoins());
         ShopSkin equipped = info.getSkins().stream()
                 .filter(item -> item.getSkinId() == info.getEquippedSkinId())
@@ -242,33 +225,10 @@ public class ShopFragment extends Fragment {
             activity.toast("请先登录");
             return;
         }
-        ShopSkin item = ShopCatalog.byId(skinId);
-        if (item == null) {
-            activity.toast("商品不存在");
-            return;
-        }
         long userId = activity.getCurrentUser().getUserId();
         NetworkExecutor.run(() -> {
             try {
-                LocalInventorySnapshot snapshot = activity.getLocalInventoryManager().snapshot(userId);
-                if (snapshot.isOwned(skinId)) {
-                    activity.toast("已拥有该物品");
-                    return;
-                }
-                if (snapshot.getCoins() < item.getPrice()) {
-                    activity.toast("金币不足");
-                    return;
-                }
-                try {
-                    activity.getApiClient().buySkin(userId, skinId);
-                } catch (Exception e) {
-                    String error = msg(e);
-                    if (!error.contains("商品不存在") && !error.contains("皮肤不存在")) {
-                        throw e;
-                    }
-                }
-                LocalInventorySnapshot updated = activity.getLocalInventoryManager().purchase(userId, skinId, item.getPrice());
-                activity.updateCoinsAndEquippedSkin(updated.getCoins(), updated.getEquippedSkinId());
+                activity.getApiClient().buySkin(userId, skinId);
                 activity.toast("购买成功");
                 activity.runOnUiThread(this::loadShop);
             } catch (Exception e) {
@@ -286,16 +246,7 @@ public class ShopFragment extends Fragment {
         long userId = activity.getCurrentUser().getUserId();
         NetworkExecutor.run(() -> {
             try {
-                try {
-                    activity.getApiClient().equipSkin(userId, skinId);
-                } catch (Exception e) {
-                    String error = msg(e);
-                    if (!error.contains("商品不存在") && !error.contains("不可装备") && !error.contains("未拥有")) {
-                        throw e;
-                    }
-                }
-                LocalInventorySnapshot updated = activity.getLocalInventoryManager().equip(userId, skinId);
-                activity.updateCoinsAndEquippedSkin(updated.getCoins(), skinId);
+                activity.getApiClient().equipSkin(userId, skinId);
                 activity.toast("装备成功");
                 activity.runOnUiThread(this::loadShop);
             } catch (Exception e) {
