@@ -60,9 +60,9 @@
   "nickname" : "cd",
   "online" : false,
   "highScore" : 1230,
-  "coins" : 363,
+  "coins" : 455,
   "equippedSkinId" : 0,
-  "ownedSkins" : [ 0 ],
+  "ownedSkins" : [ 0, 7 ],
   "friendIds" : [ ]
 }, {
   "id" : 7,
@@ -71,7 +71,7 @@
   "nickname" : "tujialin",
   "online" : false,
   "highScore" : 1150,
-  "coins" : 657,
+  "coins" : 6570,
   "equippedSkinId" : 1,
   "ownedSkins" : [ 0, 1 ],
   "friendIds" : [ ]
@@ -82,8 +82,8 @@
   "nickname" : "gfwg",
   "online" : true,
   "highScore" : 760,
-  "coins" : 853,
-  "equippedSkinId" : 0,
-  "ownedSkins" : [ 0 ],
+  "coins" : 3041,
+  "equippedSkinId" : 4,
+  "ownedSkins" : [ 0, 4 ],
   "friendIds" : [ ]
 } ]

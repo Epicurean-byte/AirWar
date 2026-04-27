@@ -1,5 +1,8 @@
 package com.planewar.server.model.entity;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Room {
@@ -20,6 +23,10 @@ public class Room {
     private int player1SkinId = 0;
     /** 玩家2的皮肤ID */
     private int player2SkinId = 0;
+    /** 服务端权威战斗结果，仅内存保存，用于 PVP 结算校验。 */
+    private final Map<Long, PlayerBattleResult> battleResults = new ConcurrentHashMap<>();
+    /** 已领取 PVP 结算的玩家，保证结算接口幂等。 */
+    private final Set<Long> settledUserIds = ConcurrentHashMap.newKeySet();
 
     public Room() {
     }
@@ -96,5 +103,56 @@ public class Room {
 
     public void setPlayer2SkinId(int player2SkinId) {
         this.player2SkinId = player2SkinId;
+    }
+
+    public boolean containsPlayer(long userId) {
+        return player1Id == userId || player2Id == userId;
+    }
+
+    public Map<Long, PlayerBattleResult> getBattleResults() {
+        return battleResults;
+    }
+
+    public Set<Long> getSettledUserIds() {
+        return settledUserIds;
+    }
+
+    public static final class PlayerBattleResult {
+        private long userId;
+        private int hp;
+        private long score;
+        private long coins;
+        private double rating;
+
+        public PlayerBattleResult() {
+        }
+
+        public PlayerBattleResult(long userId, int hp, long score, long coins, double rating) {
+            this.userId = userId;
+            this.hp = hp;
+            this.score = score;
+            this.coins = coins;
+            this.rating = rating;
+        }
+
+        public long getUserId() {
+            return userId;
+        }
+
+        public int getHp() {
+            return hp;
+        }
+
+        public long getScore() {
+            return score;
+        }
+
+        public long getCoins() {
+            return coins;
+        }
+
+        public double getRating() {
+            return rating;
+        }
     }
 }

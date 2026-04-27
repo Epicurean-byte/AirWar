@@ -3,4 +3,9 @@
   "fromUserId" : 1,
   "toUserId" : 2,
   "status" : "ACCEPTED"
+}, {
+  "id" : 2,
+  "fromUserId" : 6,
+  "toUserId" : 8,
+  "status" : "PENDING"
 } ]

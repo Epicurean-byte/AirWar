@@ -58,41 +58,50 @@ public class GameSettleController {
     public ApiResponse<Map<String, Object>> settlePvp(@RequestBody Map<String, Object> body) {
         long roomId = ((Number) body.get("roomId")).longValue();
         long userId = ((Number) body.get("userId")).longValue();
-        long score = ((Number) body.get("score")).longValue();
-        long coinsEarned = ((Number) body.get("coins")).longValue();
 
         Room room = store.rooms.get(roomId);
         if (room == null) return ApiResponse.fail("房间不存在");
+        if (!room.containsPlayer(userId)) return ApiResponse.fail("用户不属于该房间");
+        if (room.getState() != Room.State.FINISHED) return ApiResponse.fail("房间尚未结束，不能结算");
 
         Optional<User> opt = store.findById(userId);
         if (opt.isEmpty()) return ApiResponse.fail("用户不存在");
         User user = opt.get();
 
-        synchronized (user) {
-            if (score > user.getHighScore()) user.setHighScore(score);
-            user.setCoins(user.getCoins() + coinsEarned);
+        Room.PlayerBattleResult result = room.getBattleResults().get(userId);
+        if (result == null) return ApiResponse.fail("未找到该玩家的服务端战斗结果");
+
+        long winnerUserId = 0;
+        double bestRating = Double.NEGATIVE_INFINITY;
+        for (Room.PlayerBattleResult candidate : room.getBattleResults().values()) {
+            if (candidate.getRating() > bestRating) {
+                bestRating = candidate.getRating();
+                winnerUserId = candidate.getUserId();
+            }
         }
 
-        // 判断对手数据，决定是否已可结算
-        long opponentId = (room.getPlayer1Id() == userId) ? room.getPlayer2Id() : room.getPlayer1Id();
-        Optional<User> opponentOpt = store.findById(opponentId);
+        long bonus = winnerUserId == userId ? WINNER_BONUS : 0L;
+        boolean alreadySettled;
+        synchronized (room) {
+            alreadySettled = !room.getSettledUserIds().add(userId);
+            if (!alreadySettled) {
+                synchronized (user) {
+                    if (result.getScore() > user.getHighScore()) user.setHighScore(result.getScore());
+                    user.setCoins(user.getCoins() + result.getCoins() + bonus);
+                }
+                store.flushUsers();
+            }
+        }
 
         Map<String, Object> resp = new HashMap<>();
+        resp.put("alreadySettled", alreadySettled);
+        resp.put("score", result.getScore());
+        resp.put("earnedCoins", result.getCoins());
+        resp.put("winnerBonus", alreadySettled ? 0L : bonus);
+        resp.put("myRating", result.getRating());
+        resp.put("winnerUserId", winnerUserId);
         resp.put("highScore", user.getHighScore());
         resp.put("coins", user.getCoins());
-
-        // 如果双方数据都已就绪（此处简化：上报时即时判断），计算综合成绩
-        if (opponentOpt.isPresent()) {
-            User opponent = opponentOpt.get();
-            double myRating = 0.1 * score + 0.9 * coinsEarned;
-            // 对手的本局数据由其自行上报，这里只做单方向判断示例
-            // 在真实场景中可通过 room 缓存双方数据后再做最终判定
-            resp.put("myRating", myRating);
-            resp.put("winnerBonus", WINNER_BONUS);
-        }
-
-        room.setState(Room.State.FINISHED);
-        store.flushUsers();
         return ApiResponse.ok(resp);
     }
 }

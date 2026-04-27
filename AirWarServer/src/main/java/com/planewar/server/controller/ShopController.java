@@ -71,6 +71,7 @@ public class ShopController {
         if (user.getCoins() < skin.getPrice()) return ApiResponse.fail("金币不足");
 
         synchronized (user) {
+            if (user.getOwnedSkins().contains(skinId)) return ApiResponse.fail("已拥有该物品");
             if (user.getCoins() < skin.getPrice()) return ApiResponse.fail("金币不足");
             user.setCoins(user.getCoins() - skin.getPrice());
             user.getOwnedSkins().add(skinId);
