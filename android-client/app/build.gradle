@@ -57,9 +57,26 @@ tasks.register("syncShopItemResources") {
     }
 }
 
+tasks.register("syncVideoAudioResources") {
+    doLast {
+        def sourceDir = rootProject.file("videos")
+        def targetDir = project.file("src/main/res/raw")
+        if (!sourceDir.exists()) {
+            return
+        }
+        targetDir.mkdirs()
+        copy {
+            from(sourceDir)
+            include "*.wav"
+            into(targetDir)
+        }
+    }
+}
+
 tasks.named("preBuild").configure {
     dependsOn(tasks.named("purgeInvalidGeneratedArtifacts"))
     dependsOn(tasks.named("syncShopItemResources"))
+    dependsOn(tasks.named("syncVideoAudioResources"))
 }
 
 tasks.withType(JavaCompile).configureEach {

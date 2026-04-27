@@ -2,6 +2,7 @@ package edu.hitsz.game.core.event;
 
 public final class GameEvent {
     public enum Type {
+        SHOOT,
         BULLET_HIT,
         BOMB_EXPLOSION,
         GET_SUPPLY,

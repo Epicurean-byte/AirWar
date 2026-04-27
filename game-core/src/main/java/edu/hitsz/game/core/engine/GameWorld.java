@@ -194,7 +194,11 @@ public final class GameWorld {
         for (AbstractEnemy enemy : enemyAircrafts) {
             enemyBullets.addAll(enemy.shoot(sessionConfig, now));
         }
-        heroBullets.addAll(heroAircraft.shoot(sessionConfig, now));
+        List<BaseBullet> newHeroBullets = heroAircraft.shoot(sessionConfig, now);
+        heroBullets.addAll(newHeroBullets);
+        if (!newHeroBullets.isEmpty()) {
+            emitEvent(new GameEvent(GameEvent.Type.SHOOT));
+        }
     }
 
     private void bulletsMoveAction() {

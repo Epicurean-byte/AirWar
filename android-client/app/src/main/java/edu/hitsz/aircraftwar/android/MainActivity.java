@@ -11,6 +11,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
+import edu.hitsz.aircraftwar.android.audio.AudioSettingsManager;
+import edu.hitsz.aircraftwar.android.audio.GlobalBgmManager;
 import edu.hitsz.aircraftwar.android.network.HttpApiClient;
 import edu.hitsz.aircraftwar.android.network.NetworkExecutor;
 import edu.hitsz.aircraftwar.android.network.ServerConfigManager;
@@ -44,6 +46,11 @@ public class MainActivity extends AppCompatActivity {
     private final HttpApiClient apiClient = new HttpApiClient();
 
     private SessionManager sessionManager;
+<<<<<<< HEAD
+=======
+    private AudioSettingsManager audioSettingsManager;
+    private LocalInventoryManager localInventoryManager;
+>>>>>>> e8818ee49405d57171fcf72f1eb70c9d20eff5d1
     private UserProfile currentUser;
     private WsGameClient wsGameClient;
     private GameWsListener wsListener;
@@ -58,6 +65,11 @@ public class MainActivity extends AppCompatActivity {
         ServerConfigManager.getInstance().initialize(this);
 
         sessionManager = new SessionManager(this);
+<<<<<<< HEAD
+=======
+        audioSettingsManager = new AudioSettingsManager(this);
+        localInventoryManager = new LocalInventoryManager(this);
+>>>>>>> e8818ee49405d57171fcf72f1eb70c9d20eff5d1
         currentUser = sessionManager.loadUserOrNull();
 
         if (savedInstanceState == null) {
@@ -68,12 +80,24 @@ public class MainActivity extends AppCompatActivity {
                 showMainMenu();
             }
         }
+        if (isAudioEnabled()) {
+            GlobalBgmManager.getInstance(this).startMainBgm();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         hideSystemBars();
+        if (isAudioEnabled()) {
+            GlobalBgmManager.getInstance(this).resumeCurrentMode();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        GlobalBgmManager.getInstance(this).pause();
+        super.onPause();
     }
 
     public HttpApiClient getApiClient() {
@@ -84,6 +108,28 @@ public class MainActivity extends AppCompatActivity {
         return currentUser;
     }
 
+<<<<<<< HEAD
+=======
+    public LocalInventoryManager getLocalInventoryManager() {
+        return localInventoryManager;
+    }
+
+    public boolean isAudioEnabled() {
+        return audioSettingsManager != null && audioSettingsManager.isAudioEnabled();
+    }
+
+    public void setAudioEnabled(boolean enabled) {
+        if (audioSettingsManager != null) {
+            audioSettingsManager.setAudioEnabled(enabled);
+        }
+        if (enabled) {
+            GlobalBgmManager.getInstance(this).resumeCurrentMode();
+        } else {
+            GlobalBgmManager.getInstance(this).stopAll();
+        }
+    }
+
+>>>>>>> e8818ee49405d57171fcf72f1eb70c9d20eff5d1
     public void onUserAuthenticated(UserProfile user) {
         currentUser = user;
         sessionManager.saveUser(user);
@@ -252,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         disconnectGameWs();
+        GlobalBgmManager.getInstance(this).release();
         super.onDestroy();
     }
 
