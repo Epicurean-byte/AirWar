@@ -4,9 +4,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -60,8 +62,8 @@ public class LeaderboardFragment extends Fragment {
                 List<LeaderboardEntry> scores = activity.getApiClient().scoreLeaderboard();
                 List<LeaderboardEntry> coins = activity.getApiClient().coinLeaderboard();
                 activity.runOnUiThread(() -> {
-                    render(scoreList, scores, "score");
-                    render(coinList, coins, "coins");
+                    render(scoreList, scores, "score", "分数");
+                    render(coinList, coins, "coins", "金币");
                 });
             } catch (Exception e) {
                 activity.toast(e.getMessage() == null ? "请求失败" : e.getMessage());
@@ -69,7 +71,7 @@ public class LeaderboardFragment extends Fragment {
         });
     }
 
-    private void render(LinearLayout container, List<LeaderboardEntry> data, String title) {
+    private void render(LinearLayout container, List<LeaderboardEntry> data, String boardType, String title) {
         container.removeAllViews();
         if (data.isEmpty()) {
             container.addView(UiUtils.createBody(requireContext(), "暂无数据"));
@@ -77,10 +79,39 @@ public class LeaderboardFragment extends Fragment {
         }
         int rank = 1;
         for (LeaderboardEntry entry : data) {
-            container.addView(UiUtils.createBody(requireContext(),
+            LinearLayout row = UiUtils.createPanel(requireContext(), 10);
+            row.addView(UiUtils.createBody(requireContext(),
                     rank + ". " + entry.getNickname() + " " + title + "=" + entry.getValue()
-                            + " skin=#" + entry.getEquippedSkinId()));
+                            + " skin=#" + entry.getEquippedSkinId() + " user=#" + entry.getUserId()));
+
+            Button delete = UiUtils.createSmallButton(requireContext(), "删除该" + title + "榜数据");
+            delete.setOnClickListener(v -> confirmDelete(entry, boardType, title));
+            UiUtils.setTopMargin(delete, requireContext(), 8);
+            row.addView(delete);
+            container.addView(row);
             rank++;
         }
+    }
+
+    private void confirmDelete(LeaderboardEntry entry, String boardType, String title) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("删除排行榜数据")
+                .setMessage("确认删除 " + entry.getNickname() + " 的" + title + "榜数据？")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("删除", (dialog, which) -> deleteEntry(entry.getUserId(), boardType))
+                .show();
+    }
+
+    private void deleteEntry(long targetUserId, String boardType) {
+        MainActivity activity = (MainActivity) requireActivity();
+        NetworkExecutor.run(() -> {
+            try {
+                activity.getApiClient().deleteLeaderboardEntry(targetUserId, boardType);
+                activity.toast("排行榜数据已删除");
+                activity.runOnUiThread(this::loadBoard);
+            } catch (Exception e) {
+                activity.toast(e.getMessage() == null ? "删除失败" : e.getMessage());
+            }
+        });
     }
 }

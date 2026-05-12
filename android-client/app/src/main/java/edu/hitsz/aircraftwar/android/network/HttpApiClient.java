@@ -152,6 +152,13 @@ public final class HttpApiClient {
         return parseLeaderboard(arr);
     }
 
+    public void deleteLeaderboardEntry(long targetUserId, String boardType) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("targetUserId", targetUserId);
+        body.put("boardType", boardType);
+        post("/api/leaderboard/delete", body);
+    }
+
     public void settleSingle(long userId, long score, long coins) throws Exception {
         JSONObject body = new JSONObject();
         body.put("userId", userId);

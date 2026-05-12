@@ -82,8 +82,19 @@
   "nickname" : "gfwg",
   "online" : true,
   "highScore" : 760,
-  "coins" : 3041,
+  "coins" : 3293,
   "equippedSkinId" : 4,
   "ownedSkins" : [ 0, 4 ],
+  "friendIds" : [ ]
+}, {
+  "id" : 9,
+  "username" : "2",
+  "password" : "222",
+  "nickname" : "22",
+  "online" : true,
+  "highScore" : 20,
+  "coins" : 6,
+  "equippedSkinId" : 0,
+  "ownedSkins" : [ 0 ],
   "friendIds" : [ ]
 } ]

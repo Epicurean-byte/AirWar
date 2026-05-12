@@ -46,11 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private final HttpApiClient apiClient = new HttpApiClient();
 
     private SessionManager sessionManager;
-<<<<<<< HEAD
-=======
     private AudioSettingsManager audioSettingsManager;
-    private LocalInventoryManager localInventoryManager;
->>>>>>> e8818ee49405d57171fcf72f1eb70c9d20eff5d1
     private UserProfile currentUser;
     private WsGameClient wsGameClient;
     private GameWsListener wsListener;
@@ -65,11 +61,7 @@ public class MainActivity extends AppCompatActivity {
         ServerConfigManager.getInstance().initialize(this);
 
         sessionManager = new SessionManager(this);
-<<<<<<< HEAD
-=======
         audioSettingsManager = new AudioSettingsManager(this);
-        localInventoryManager = new LocalInventoryManager(this);
->>>>>>> e8818ee49405d57171fcf72f1eb70c9d20eff5d1
         currentUser = sessionManager.loadUserOrNull();
 
         if (savedInstanceState == null) {
@@ -108,12 +100,6 @@ public class MainActivity extends AppCompatActivity {
         return currentUser;
     }
 
-<<<<<<< HEAD
-=======
-    public LocalInventoryManager getLocalInventoryManager() {
-        return localInventoryManager;
-    }
-
     public boolean isAudioEnabled() {
         return audioSettingsManager != null && audioSettingsManager.isAudioEnabled();
     }
@@ -129,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
->>>>>>> e8818ee49405d57171fcf72f1eb70c9d20eff5d1
     public void onUserAuthenticated(UserProfile user) {
         currentUser = user;
         sessionManager.saveUser(user);
